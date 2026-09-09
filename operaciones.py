@@ -13,29 +13,57 @@ def es_numerico(valor):
     if valor.isdigit():
         return int(valor)
 
-def normalizar_tag(tag):
+def normalizar_string(string):
     """RF05: normaliza el tag a mayúsculas y sin espacios."""
-    return tag.strip().upper().replace(" ", "")
+    return string.upper().replace(" ", "")
 
-def validar_registro_equipo(liNombres, nombre, tag, liTags, region):
+
+def validar_registro_equipo(liNombres, liTags, nombre, tag, region):
+
+    regionesValidas = ("NA", "EU", "LATAM", "APAC", "KR", "BR", "OCE")
+    valido = True
+
     if len(liNombres) >= 8:
-        return False, "Ya se alcanzó el máximo de 8 equipos."
+        print("Ya se alcanzó el máximo de 8 equipos.")
+        valido = False
 
-    if nombre.strip() == "":
-        return False, "El nombre del equipo no puede estar vacío."
+    if nombre == "":
+        print("El nombre del equipo no puede estar vacío.")
+        valido = False
 
-    tagNormalizado = normalizar_tag(tag)
+    if "  " in nombre:
+        print("El nombre no puede tener espacios dobles o de más.")
+        valido = False
 
-    if tagNormalizado == "":
-        return False, "El tag no puede estar vacío."
+    nombreNormalizado = normalizar_string(nombre)
+    for nombreExistente in liNombres:
+        if normalizar_string(nombreExistente) == nombreNormalizado:
+            print(f"El nombre de equipo ya está registrado.")
+            valido = False
 
+    if tag == "":
+        print("El tag no puede estar vacío.")
+        valido = False
+
+    if " " in tag:
+        print("El tag no puede tener espacios en medio.")
+        valido = False
+
+    tagNormalizado = normalizar_string(tag)
     if tagNormalizado in liTags:
-        return False, f"El tag '{tagNormalizado}' ya está registrado por otro equipo."
+        print("El tag ya está registrado por otro equipo.")
+        valido = False
 
-    if region.strip() == "":
-            return False, "La region no puede estar vacío."
-    
-    return True, ""
+    if region == "":
+        print("La región no puede estar vacía.")
+        valido = False
+
+    regionNormalizada = normalizar_string(region)
+    if regionNormalizada not in regionesValidas:
+        print(f"Región inválida. Las regiones permitidas son: {regionesValidas}.")
+        valido = False
+
+    return valido
 
 #Operaciones
 def registrar(liNombres, liTags, liRegiones, liPosiciones, nombre, tag, region):
@@ -45,9 +73,9 @@ def registrar(liNombres, liTags, liRegiones, liPosiciones, nombre, tag, region):
     """
     idNuevo = len(liNombres)
 
-    liNombres.append(nombre.strip())
-    liTags.append(normalizar_tag(tag))
-    liRegiones.append(region.strip().upper())
+    liNombres.append(nombre)
+    liTags.append(tag)
+    liRegiones.append(region)
     liPosiciones.append([0, 0, 0, 0])  # PJ, PG, PP, puntos
 
     return idNuevo
@@ -56,18 +84,18 @@ def registrar_equipo(liNombres, liTags, liRegiones, liPosiciones):
     """RF04-06: valida antes de registrar un equipo."""
     print("\n--- Registrar equipo ---")
     
-    nombre = input("Nombre del equipo: ")
-    tag = input("Tag (código corto): ")
-    region = input("Región (ej. NA, EU, LATAM): ")
+    nombre = (input("Nombre del equipo: ")).strip()
+    tag = normalizar_string(input("Tag (código corto): "))
+    region = normalizar_string(input('Región("NA", "EU", "LATAM", "APAC", "KR", "BR", "OCE"): ' ))
 
-    valido, mensaje = validar_registro_equipo(liNombres, nombre, tag, liTags, region)
-
+    valido = validar_registro_equipo(liNombres, liTags, nombre, tag, region)
+    
     if not valido:
-        print(f"Error: {mensaje}")
-        return
+        print("No se registro el equipo.")
 
-    idEquipo = registrar(liNombres, liTags, liRegiones, liPosiciones, nombre, tag, region)
-    print(f"Equipo '{liNombres[idEquipo]}' registrado con id {idEquipo}.")
+    else:
+        idEquipo = registrar(liNombres, liTags, liRegiones, liPosiciones, nombre, tag, region)
+        print(f"El equipo '{liNombres[idEquipo]}' fue registrado correctamente con el id {idEquipo}.")
 
 def listar_equipos(liNombres, liTags, liRegiones):
     """RF11: arma el listado de equipos registrados para mostrar."""
