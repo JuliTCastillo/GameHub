@@ -10,6 +10,12 @@ def main():
     # Tupla de mapas habilitados
     MAPAS = ("Bind", "Haven", "Ascent")
 
+    #Listas paralelas
+    nombres  = []
+    tags     = []
+    regiones = []
+    posiciones = []
+
     # 8 equipos, 4 partidos por jornada, 7 jornadas
     # Fixture fijo: [jornada, id_equipoA, id_equipoB, jugado]
     # jugado arranca en 0 (pendiente) y pasa a 1 cuando se carga el resultado.
@@ -25,5 +31,20 @@ def main():
 
     valor = op.menu(CONFIG_TORNEO)
     while valor != 8:
+        if valor == 1:
+            op.registrarEquipo(nombres, tags, regiones, posiciones)
+        elif valor == 2:
+            print(op.listar_equipos(nombres, tags, regiones))
+        elif valor == 3:
+            print("Ver partidos pendientes/cargar resultado")
+        elif valor == 4:
+            print("Consultar historial")
+        elif valor == 5:
+            print("Buscar equipo")
+        elif valor == 6:
+            print("Tabla de posiciones")
+        elif valor == 7:
+            #En informe tiene que elegir entre (líder, Top 3, racha máxima, invictos, resumen general)
+            print("Informe")
         valor = op.menu(CONFIG_TORNEO)
 main()
