@@ -35,20 +35,3 @@ def menu(info):
     operacion = validacionDeRango(1, 8,operacion)
 
     return operacion
-
-def operaciones(valor):
-    if valor == 1:
-        print("Registrar equipo")
-    elif valor == 2:
-        print("Listar equipo")
-    elif valor == 3:
-        print("Ver partidos pendientes/cargar resultado")
-    elif valor == 4:
-        print("Consultar historial")
-    elif valor == 5:
-        print("Buscar equipo")
-    elif valor == 6:
-        print("Tabla de posiciones")
-    elif valor == 7:
-        #En informe tiene que elegir entre (líder, Top 3, racha máxima, invictos, resumen general)
-        print("Informe")
