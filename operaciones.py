@@ -1,3 +1,4 @@
+#Validaciones
 def validacionDeRango(min, max, valor):
     try:
         while valor < min or valor > max:
@@ -11,7 +12,12 @@ def validacionDeRango(min, max, valor):
 def esNumerico(valor):
     if valor.isdigit():
         return int(valor)
-        
+
+#Operaciones
+def registrarEquipo():
+    print("Registro")        
+
+#MENU
 def menu(info):
     print(f"""
 ----> {info[0]} - {info[1]} <----
@@ -25,10 +31,24 @@ def menu(info):
 8. Salir
     """)
 
-    #En informe tiene que elegir entre (líder, Top 3, racha máxima, invictos, resumen general)
-
     operacion = esNumerico(input("Ingrese la operación que desea realizar: "))
     operacion = validacionDeRango(1, 8,operacion)
 
     return operacion
 
+def operaciones(valor):
+    if valor == 1:
+        print("Registrar equipo")
+    elif valor == 2:
+        print("Listar equipo")
+    elif valor == 3:
+        print("Ver partidos pendientes/cargar resultado")
+    elif valor == 4:
+        print("Consultar historial")
+    elif valor == 5:
+        print("Buscar equipo")
+    elif valor == 6:
+        print("Tabla de posiciones")
+    elif valor == 7:
+        #En informe tiene que elegir entre (líder, Top 3, racha máxima, invictos, resumen general)
+        print("Informe")

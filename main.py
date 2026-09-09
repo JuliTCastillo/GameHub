@@ -25,5 +25,6 @@ def main():
 
     valor = op.menu(CONFIG_TORNEO)
     while valor != 8:
+        op.operaciones(valor)
         valor = op.menu(CONFIG_TORNEO)
 main()
