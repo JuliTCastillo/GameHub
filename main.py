@@ -32,7 +32,7 @@ def main():
     valor = op.menu(CONFIG_TORNEO)
     while valor != 8:
         if valor == 1:
-            op.registrarEquipo(nombres, tags, regiones, posiciones)
+            op.registrar_equipo(nombres, tags, regiones, posiciones)
         elif valor == 2:
             print(op.listar_equipos(nombres, tags, regiones))
         elif valor == 3:
