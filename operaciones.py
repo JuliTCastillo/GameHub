@@ -65,6 +65,13 @@ def validar_registro_equipo(liNombres, liTags, nombre, tag, region):
 
     return valido
 
+def validar_suficientes_equipos(LiNombres):
+    valido = True
+    if len(LiNombres) < 8:
+        valido = False
+    return valido
+
+
 #Operaciones
 def registrar(liNombres, liTags, liRegiones, liPosiciones, nombre, tag, region):
     """
@@ -109,18 +116,52 @@ def listar_equipos(liNombres, liTags, liRegiones):
 
     return "\n".join(lineas)
 
+def jornada_actual(fixture):
+    for grupoJornada in range(len(fixture)):
+        for partido in fixture[grupoJornada]:
+            _, _, jugado = partido
+            if jugado == 0:
+                return grupoJornada + 1
+
+    return 0  # si no hay ningún 0, ya se jugaron todos los partidos
+
+def partidos_pendientes(fixture, jornada):
+    pendientes = []
+    for partido in fixture[jornada - 1]:
+        idA, idB, jugado = partido
+        if jugado == 0:
+            pendientes.append(partido)
+
+    return pendientes
+
+def listar_partidos_pendientes(fixture, liNombres):
+    jornada = jornada_actual(fixture)
+
+    if jornada == 0:
+        print("El torneo ya terminó, no quedan partidos pendientes.")
+        return
+
+    print(f"Actualmente se está jugando la jornada N° {jornada}")
+    print("Los partidos pendientes son:")
+
+    for partido in partidos_pendientes(fixture, jornada):
+        idA, idB, jugado = partido
+        print(f"{liNombres[idA]} vs {liNombres[idB]}")
+
+
 #MENU
 def menu(info):
     print(f"""
 ----> {info[0]} - {info[1]} <----
 1. Registrar equipo
 2. Listar equipos
-3. Ver partidos pendientes / cargar resultado
-4. Consultar historial
-5. Buscar equipo
-6. Tabla de posiciones
-7. Informes 
-8. Salir
+3. Ver partidos pendientes
+4. Cargar resultado
+5. Consultar historial
+6. Buscar equipo
+7. Tabla de posiciones
+8. Informes 
+9. Salir
     """)
 
     operacion = es_numerico(input("Ingrese la operación que desea realizar: "))
