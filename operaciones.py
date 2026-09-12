@@ -178,6 +178,22 @@ def registrar_resultados(fixture, historial, LiNombres):
     partido_actual[2] = 1
     historial.append([jornada, idA, idB, puntosA, puntosB, mapa])
 
+def consultar_historial(historial, LiNombres):
+    """RF12: arma el listado del historial de partidos jugados,
+    traduciendo los ids de equipo a nombres."""
+    if len(historial) == 0:
+        return "Todavía no se jugó ningún partido."
+
+    lineas = []
+    for partido in historial:
+        jornada, idA, idB, puntosA, puntosB, mapa = partido
+        equipoA = LiNombres[idA]
+        equipoB = LiNombres[idB]
+        linea = f"Jornada {jornada}: {equipoA} {puntosA} - {puntosB} {equipoB} (Mapa: {mapa})"
+        lineas.append(linea)
+
+    return "\n".join(lineas)
+
 def generar_ranking(liPosiciones):
     """RF18: genera el orden de los equipos por índice, usando lambda.
     Ordena por puntos de mayor a menor, y en caso de empate por PG (partidos ganados)."""

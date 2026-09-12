@@ -49,7 +49,7 @@ def main():
             else:
                 print(f"Todavía no están los 8 equipos registrados (hay {len(nombres)}).")
         elif valor == 5:
-            print("Consultar historial")
+            print(consultar_historial(historial, nombres))
         elif valor == 6:
             print("Buscar equipo")
         elif valor == 7:
