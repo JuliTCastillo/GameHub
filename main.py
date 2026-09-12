@@ -36,14 +36,16 @@ def main():
         elif valor == 2:
             print(listar_equipos(nombres, tags, regiones))
         elif valor == 3:
-            print("Ver partidos pendientes/cargar resultado")
+            print("Ver partidos pendientes")
         elif valor == 4:
-            print("Consultar historial")
+            print("Cargar resultados")
         elif valor == 5:
-            print("Buscar equipo")
+            print("Consultar historial")
         elif valor == 6:
-            print("Tabla de posiciones")
+            print("Buscar equipo")
         elif valor == 7:
+            print("Tabla de posiciones")
+        elif valor == 8:
             #En informe tiene que elegir entre (líder, Top 3, racha máxima, invictos, resumen general)
             print("Informe")
         valor = menu(CONFIG_TORNEO)
