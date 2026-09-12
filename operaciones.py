@@ -178,6 +178,37 @@ def registrar_resultados(fixture, historial, LiNombres):
     partido_actual[2] = 1
     historial.append([jornada, idA, idB, puntosA, puntosB, mapa])
 
+def generar_ranking(liPosiciones):
+    """RF18: genera el orden de los equipos por índice, usando lambda.
+    Ordena por puntos de mayor a menor, y en caso de empate por PG (partidos ganados)."""
+    indices = list(range(len(liPosiciones)))
+    ranking = sorted(indices, key=lambda i: (liPosiciones[i][3], liPosiciones[i][1]), reverse=True)
+    return ranking
+
+
+def tabla_de_posiciones(liNombres, liTags, liRegiones, liPosiciones):
+    """RF13/RF22: arma la tabla de posiciones ordenada de mayor a menor puntaje,
+    con desempate por PG, para mostrarla como informe."""
+    if len(liNombres) == 0:
+        return "Todavía no hay equipos registrados."
+
+    ranking = generar_ranking(liPosiciones)
+
+    encabezado = f"{'Pos':<4}{'Equipo':<20}{'Tag':<8}{'Región':<8}{'PJ':<5}{'PG':<5}{'PP':<5}{'Pts':<5}"
+    lineas = [encabezado]
+
+    pos = 1
+    for i in ranking:
+        pj = liPosiciones[i][0]
+        pg = liPosiciones[i][1]
+        pp = liPosiciones[i][2]
+        pts = liPosiciones[i][3]
+        linea = f"{pos:<4}{liNombres[i]:<20}{liTags[i]:<8}{liRegiones[i]:<8}{pj:<5}{pg:<5}{pp:<5}{pts:<5}"
+        lineas.append(linea)
+        pos += 1
+
+    return "\n".join(lineas)
+
 #MENU
 def menu(info):
     print(f"""

@@ -53,7 +53,7 @@ def main():
         elif valor == 6:
             print("Buscar equipo")
         elif valor == 7:
-            print("Tabla de posiciones")
+            print(tabla_de_posiciones(nombres, tags, regiones, posiciones))
         elif valor == 8:
             #En informe tiene que elegir entre (líder, Top 3, racha máxima, invictos, resumen general)
             print("Informe")
