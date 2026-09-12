@@ -148,17 +148,34 @@ def listar_partidos_pendientes(fixture, liNombres):
         idA, idB, jugado = partido
         print(f"{liNombres[idA]} vs {liNombres[idB]}")
 
+def pedir_puntaje(mensaje):
+    puntaje = es_numerico(input(mensaje))
+    while puntaje is None:
+        print("Error. Debe ingresar un número entero.")
+        puntaje = es_numerico(input(mensaje))
+    return puntaje
+
 def registrar_resultados(fixture, historial, LiNombres):
     jornada = jornada_actual(fixture)
-    partidos = partidos_pendientes(fixture,jornada)
-    idA, idB, jugado = partidos[0]
+    partidos = partidos_pendientes(fixture, jornada)
+    partido_actual = partidos[0]
+    idA, idB, _ = partido_actual
     equipoA = LiNombres[idA]
     equipoB = LiNombres[idB]
+
     print(f"El partido actual es {equipoA} vs {equipoB}")
-    puntosA = int(input(f"Ingrese la puntuacion de {equipoA}: "))
-    puntosB = int(input(f"Ingrese la puntuacion del {equipoB}: "))
+
+    while True:
+        puntosA = pedir_puntaje(f"Ingrese la puntuación de {equipoA}: ")
+        puntosB = pedir_puntaje(f"Ingrese la puntuación de {equipoB}: ")
+
+        if puntosA == puntosB:
+            print("Error. No se permiten empates, los puntajes no pueden ser iguales.")
+        else:
+            break
+
     mapa = input("Ingrese el nombre del mapa: ")
-    jugado = 1
+    partido_actual[2] = 1
     historial.append([jornada, idA, idB, puntosA, puntosB, mapa])
 
 #MENU
