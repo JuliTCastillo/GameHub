@@ -38,9 +38,9 @@ def main():
         elif valor == 2:
             print(listar_equipos(nombres, tags, regiones))
         elif valor == 3:
-            print(listar_partidos_pendientes(fixture, nombres))
+            listar_partidos_pendientes(fixture, nombres)
         elif valor == 4:
-            print("Cargar resultados")
+            registrar_resultados(fixture, historial, nombres)
         elif valor == 5:
             print("Consultar historial")
         elif valor == 6:

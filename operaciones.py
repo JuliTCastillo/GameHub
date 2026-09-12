@@ -148,6 +148,18 @@ def listar_partidos_pendientes(fixture, liNombres):
         idA, idB, jugado = partido
         print(f"{liNombres[idA]} vs {liNombres[idB]}")
 
+def registrar_resultados(fixture, historial, LiNombres):
+    jornada = jornada_actual(fixture)
+    partidos = partidos_pendientes(fixture,jornada)
+    idA, idB, jugado = partidos[0]
+    equipoA = LiNombres[idA]
+    equipoB = LiNombres[idB]
+    print(f"El partido actual es {equipoA} vs {equipoB}")
+    puntosA = int(input(f"Ingrese la puntuacion de {equipoA}: "))
+    puntosB = int(input(f"Ingrese la puntuacion del {equipoB}: "))
+    mapa = input("Ingrese el nombre del mapa: ")
+    jugado = 1
+    historial.append([jornada, idA, idB, puntosA, puntosB, mapa])
 
 #MENU
 def menu(info):
