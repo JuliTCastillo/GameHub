@@ -28,19 +28,26 @@ def main():
     [[0, 2, 0], [1, 3, 0], [4, 7, 0], [5, 6, 0]],
     [[0, 1, 0], [2, 7, 0], [3, 6, 0], [4, 5, 0]],
 ]
-
+    # Cada fila tiene: [jornada, idA, idB, puntosA, puntosB, mapa]
+    # mapa ya viene guardado como texto (ej. "Bind"), no hace falta traducirlo
     historial=[]
 
     valor = menu(CONFIG_TORNEO)
-    while valor != 8:
+    while valor != 9:
         if valor == 1:
             registrar_equipo(nombres, tags, regiones, posiciones)
         elif valor == 2:
             print(listar_equipos(nombres, tags, regiones))
         elif valor == 3:
-            listar_partidos_pendientes(fixture, nombres)
+            if validar_suficientes_equipos(nombres):
+                listar_partidos_pendientes(fixture, nombres)
+            else:
+                print(f"Todavía no están los 8 equipos registrados (hay {len(nombres)}).")
         elif valor == 4:
-            registrar_resultados(fixture, historial, nombres)
+            if validar_suficientes_equipos(nombres):
+                registrar_resultados(fixture, historial, nombres)
+            else:
+                print(f"Todavía no están los 8 equipos registrados (hay {len(nombres)}).")
         elif valor == 5:
             print("Consultar historial")
         elif valor == 6:

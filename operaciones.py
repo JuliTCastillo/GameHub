@@ -194,6 +194,6 @@ def menu(info):
     """)
 
     operacion = es_numerico(input("Ingrese la operación que desea realizar: "))
-    operacion = validacion_de_rango(1, 8, operacion)
+    operacion = validacion_de_rango(1, 9, operacion)
 
     return operacion
