@@ -1,4 +1,4 @@
-import operaciones as op
+from operaciones import *
 
 def main():
     CONFIG_TORNEO = (
@@ -29,12 +29,12 @@ def main():
         [7, 0, 1, 0], [7, 2, 7, 0], [7, 3, 6, 0], [7, 4, 5, 0],
     ]
 
-    valor = op.menu(CONFIG_TORNEO)
+    valor = menu(CONFIG_TORNEO)
     while valor != 8:
         if valor == 1:
-            op.registrar_equipo(nombres, tags, regiones, posiciones)
+            registrar_equipo(nombres, tags, regiones, posiciones)
         elif valor == 2:
-            print(op.listar_equipos(nombres, tags, regiones))
+            print(listar_equipos(nombres, tags, regiones))
         elif valor == 3:
             print("Ver partidos pendientes/cargar resultado")
         elif valor == 4:
@@ -46,5 +46,5 @@ def main():
         elif valor == 7:
             #En informe tiene que elegir entre (líder, Top 3, racha máxima, invictos, resumen general)
             print("Informe")
-        valor = op.menu(CONFIG_TORNEO)
+        valor = menu(CONFIG_TORNEO)
 main()
