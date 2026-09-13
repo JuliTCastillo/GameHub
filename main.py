@@ -45,11 +45,9 @@ def main():
                 print(f"Todavía no están los 8 equipos registrados (hay {len(nombres)}).")
         elif valor == 4:
             if validar_suficientes_equipos(nombres):
-                registrar_resultados(fixture, historial, nombres)
-            else:
-                print(f"Todavía no están los 8 equipos registrados (hay {len(nombres)}).")
+                registrar_resultados(fixture, historial, posiciones, nombres,MAPAS)
         elif valor == 5:
-            print(consultar_historial(historial, nombres))
+                print(consultar_historial(historial, nombres))
         elif valor == 6:
             busqueda = input("Ingrese ID o tag del equipo a buscar: ").strip()
             idEquipo = buscar_equipo(nombres, tags, busqueda)

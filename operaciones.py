@@ -155,7 +155,15 @@ def pedir_puntaje(mensaje):
         puntaje = es_numerico(input(mensaje))
     return puntaje
 
-def registrar_resultados(fixture, historial, LiNombres):
+def pedir_mapa(mapasHabilitados):
+    mapa = normalizar_string(input(f"Ingrese el mapa jugado {mapasHabilitados}: "))
+    mapasNormalizados = [normalizar_string(m) for m in mapasHabilitados]
+    while mapa not in mapasNormalizados:
+        print(f"Mapa inválido. Debe ser uno de: {mapasHabilitados}")
+        mapa = normalizar_string(input("Ingrese el mapa jugado: "))
+    return mapa
+
+def registrar_resultados(fixture, historial, posiciones, LiNombres, mapasHabilitados):
     jornada = jornada_actual(fixture)
     partidos = partidos_pendientes(fixture, jornada)
     partido_actual = partidos[0]
@@ -174,9 +182,24 @@ def registrar_resultados(fixture, historial, LiNombres):
         else:
             break
 
-    mapa = input("Ingrese el nombre del mapa: ")
+    mapa = pedir_mapa(mapasHabilitados)
     partido_actual[2] = 1
     historial.append([jornada, idA, idB, puntosA, puntosB, mapa])
+    actualizar_posiciones(posiciones, idA, idB, puntosA, puntosB)
+
+def actualizar_posiciones(liPosiciones, idA, idB, puntosA, puntosB):
+    """RF08: actualiza PJ, PG, PP y puntos de ambos equipos tras cargar un resultado."""
+    liPosiciones[idA][0] += 1  # PJ equipo A
+    liPosiciones[idB][0] += 1  # PJ equipo B
+
+    if puntosA > puntosB:
+        liPosiciones[idA][1] += 1   # PG equipo A
+        liPosiciones[idA][3] += 3   # puntos equipo A (gana = 3)
+        liPosiciones[idB][2] += 1   # PP equipo B
+    else:
+        liPosiciones[idB][1] += 1   # PG equipo B
+        liPosiciones[idB][3] += 3   # puntos equipo B
+        liPosiciones[idA][2] += 1   # PP equipo A
 
 def consultar_historial(historial, LiNombres):
     """RF12: arma el listado del historial de partidos jugados,
