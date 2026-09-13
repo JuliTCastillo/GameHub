@@ -1,4 +1,4 @@
-#Validaciones
+    #Validaciones
 def validacion_de_rango(min, max, valor):
     try:
         while valor < min or valor > max:
@@ -224,7 +224,25 @@ def tabla_de_posiciones(liNombres, liTags, liRegiones, liPosiciones):
         pos += 1
 
     return "\n".join(lineas)
+def buscar_equipo(liNombres, liTags, busqueda):
+    """RF13: busca por id (número) o por tag. Devuelve el índice, o -1 si no existe."""
+    if busqueda.isdigit():
+        idBuscado = int(busqueda)
+        if 0 <= idBuscado < len(liNombres):
+            return idBuscado
+        return -1
 
+    tagNormalizado = normalizar_string(busqueda)
+    for i in range(len(liTags)):
+        if liTags[i] == tagNormalizado:
+            return i
+    return -1
+
+def mostrar_equipo(liNombres, liTags, liRegiones, liPosiciones, idEquipo):
+    pj, pg, pp, pts = liPosiciones[idEquipo]
+    porcentaje = (pg / pj * 100) if pj > 0 else 0
+    return (f"ID {idEquipo}: {liNombres[idEquipo]} [{liTags[idEquipo]}] - {liRegiones[idEquipo]}\n"
+            f"PJ:{pj} PG:{pg} PP:{pp} Pts:{pts} | % Victorias: {porcentaje:.1f}%")
 #MENU
 def menu(info):
     print(f"""

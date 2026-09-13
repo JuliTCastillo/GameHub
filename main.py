@@ -51,7 +51,12 @@ def main():
         elif valor == 5:
             print(consultar_historial(historial, nombres))
         elif valor == 6:
-            print("Buscar equipo")
+            busqueda = input("Ingrese ID o tag del equipo a buscar: ").strip()
+            idEquipo = buscar_equipo(nombres, tags, busqueda)
+            if idEquipo == -1:
+                print("No se encontró ningún equipo con ese ID o tag.")
+            else:
+              print(mostrar_equipo(nombres, tags, regiones, posiciones, idEquipo))
         elif valor == 7:
             print(tabla_de_posiciones(nombres, tags, regiones, posiciones))
         elif valor == 8:
