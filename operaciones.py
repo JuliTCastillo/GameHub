@@ -266,6 +266,110 @@ def mostrar_equipo(liNombres, liTags, liRegiones, liPosiciones, idEquipo):
     porcentaje = (pg / pj * 100) if pj > 0 else 0
     return (f"ID {idEquipo}: {liNombres[idEquipo]} [{liTags[idEquipo]}] - {liRegiones[idEquipo]}\n"
             f"PJ:{pj} PG:{pg} PP:{pp} Pts:{pts} | % Victorias: {porcentaje:.1f}%")
+
+# Funciones de informe
+
+def detectar_lideres(liPosiciones):
+    """RF20: detecta el/los equipo(s) con el máximo puntaje, SIN aplicar desempate."""
+    maxPuntos = max(fila[3] for fila in liPosiciones)
+    lideres = [i for i in range(len(liPosiciones)) if liPosiciones[i][3] == maxPuntos]
+    return lideres
+
+
+def top_3(liPosiciones):
+    """RF17/RF19: top 3 del ranking, usando lambda (en generar_ranking) + slicing."""
+    ranking = generar_ranking(liPosiciones)
+    return ranking[:3]
+
+
+def racha_maxima(historial, cantEquipos):
+    """RF16: racha de victorias consecutivas más larga por equipo.
+    Devuelve el/los equipo(s) que la alcanzaron (puede haber empate) y el valor."""
+    rachaActual = [0] * cantEquipos
+    rachaMax = [0] * cantEquipos
+
+    for partido in historial:
+        jornada, idA, idB, puntosA, puntosB, mapa = partido
+        if puntosA > puntosB:
+            ganador, perdedor = idA, idB
+        else:
+            ganador, perdedor = idB, idA
+
+        rachaActual[ganador] += 1
+        rachaActual[perdedor] = 0
+
+        if rachaActual[ganador] > rachaMax[ganador]:
+            rachaMax[ganador] = rachaActual[ganador]
+
+    valorMax = max(rachaMax) if rachaMax else 0
+    equipos = [i for i in range(cantEquipos) if rachaMax[i] == valorMax]
+    return equipos, valorMax
+
+
+def equipos_invictos(liNombres, liPosiciones):
+    """RF-invictos: equipos con PJ>0 y PP==0. Usa comprensión de listas (requisito obligatorio)."""
+    return [liNombres[i] for i in range(len(liNombres)) if liPosiciones[i][0] > 0 and liPosiciones[i][2] == 0]
+
+
+def resumen_general(liNombres, liPosiciones, historial):
+    """RF21: resumen general del torneo."""
+    partidosJugados = len(historial)
+    totalRounds = sum(p[3] + p[4] for p in historial)
+    promedioRounds = (totalRounds / partidosJugados) if partidosJugados > 0 else 0
+
+    lideres = detectar_lideres(liPosiciones)
+    nombresLideres = [liNombres[i] for i in lideres]
+
+    return (f"Equipos registrados: {len(liNombres)}\n"
+            f"Partidos jugados: {partidosJugados}\n"
+            f"Promedio general de rounds por partido: {promedioRounds:.1f}\n"
+            f"Líder(es) del torneo: {', '.join(nombresLideres) if nombresLideres else 'Sin datos'}")
+
+
+def informe_lideres(liNombres, liPosiciones):
+    lideres = detectar_lideres(liPosiciones)
+    nombres = [liNombres[i] for i in lideres]
+    return f"Líder(es) del torneo (máximo puntaje): {', '.join(nombres)}"
+
+
+def informe_top3(liNombres, liTags, liPosiciones):
+    top = top_3(liPosiciones)
+    lineas = ["Top 3:"]
+    for pos, i in enumerate(top, start=1):
+        lineas.append(f"{pos}. {liNombres[i]} [{liTags[i]}] - {liPosiciones[i][3]} pts")
+    return "\n".join(lineas)
+
+
+def informe_racha(liNombres, historial, cantEquipos):
+    equipos, valor = racha_maxima(historial, cantEquipos)
+    if valor == 0:
+        return "Todavía no hay rachas de victorias registradas."
+    nombres = [liNombres[i] for i in equipos]
+    return f"Racha de victorias más larga: {valor} partidos ganados seguidos ({', '.join(nombres)})"
+
+
+def informe_invictos(liNombres, liPosiciones):
+    invictos = equipos_invictos(liNombres, liPosiciones)
+    if not invictos:
+        return "No hay equipos invictos."
+    return f"Equipos invictos: {', '.join(invictos)}"
+
+# SUBMENU para informe
+
+def menu_informes():
+    print("""
+--- Informes ---
+1. Líder(es) del torneo
+2. Top 3
+3. Racha de victorias más larga
+4. Equipos invictos
+5. Resumen general
+6. Volver
+    """)
+    operacion = es_numerico(input("Ingrese la operación que desea realizar: "))
+    operacion = validacion_de_rango(1, 6, operacion)
+    return operacion
+
 #MENU
 def menu(info):
     print(f"""
