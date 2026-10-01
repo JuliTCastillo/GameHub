@@ -68,17 +68,28 @@ def main():
     valor = menu(CONFIG_TORNEO)
     while valor != 9:
         if valor == 1:
-            registrar_equipo(nombres, tags, regiones, posiciones)
+            if validar_suficientes_equipos(nombres):
+                print("Ya se alcanzo el maximo de 8 equipos.")
+            else:
+                registrar_equipo(nombres, tags, regiones, posiciones)
         elif valor == 2:
             print(listar_equipos(nombres, tags, regiones))
         elif valor == 3:
             if validar_suficientes_equipos(nombres):
-                listar_partidos_pendientes(fixture, nombres)
+                if validar_partidos_pendientes(fixture):
+                    listar_partidos_pendientes(fixture, nombres)
+                else:
+                    print("El torneo ya terminó, no quedan partidos pendientes.")
             else:
                 print(f"Todavía no están los 8 equipos registrados (hay {len(nombres)}).")
         elif valor == 4:
             if validar_suficientes_equipos(nombres):
-                registrar_resultados(fixture, historial, posiciones, nombres,MAPAS)
+                if validar_partidos_pendientes(fixture):
+                    registrar_resultados(fixture, historial, posiciones, nombres,MAPAS)
+                else:
+                    print("El torneo ya terminó, no quedan partidos a los que cargarle resultados.")
+            else:
+                print(f"Todavía no están los 8 equipos registrados (hay {len(nombres)}).")
         elif valor == 5:
                 print(consultar_historial(historial, nombres))
         elif valor == 6:

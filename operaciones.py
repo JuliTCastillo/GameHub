@@ -1,3 +1,8 @@
+import re
+
+def normalizar_string(string):
+    return re.sub(r"\s+", "", string.upper())
+
     #Validaciones
 def validacion_de_rango(min, max, valor):
     try:
@@ -13,19 +18,16 @@ def es_numerico(valor):
     if valor.isdigit():
         return int(valor)
 
-def normalizar_string(string):
-    """RF05: normaliza el tag a mayúsculas y sin espacios."""
-    return string.upper().replace(" ", "")
-
+def validar_suficientes_equipos(LiNombres):
+    valido = True
+    if len(LiNombres) < 8:
+        valido = False
+    return valido
 
 def validar_registro_equipo(liNombres, liTags, nombre, tag, region):
 
     regionesValidas = ("NA", "EU", "LATAM", "APAC", "KR", "BR", "OCE")
     valido = True
-
-    if len(liNombres) >= 8:
-        print("Ya se alcanzó el máximo de 8 equipos.")
-        valido = False
 
     if nombre == "":
         print("El nombre del equipo no puede estar vacío.")
@@ -65,11 +67,7 @@ def validar_registro_equipo(liNombres, liTags, nombre, tag, region):
 
     return valido
 
-def validar_suficientes_equipos(LiNombres):
-    valido = True
-    if len(LiNombres) < 8:
-        valido = False
-    return valido
+
 
 
 #Operaciones
@@ -116,6 +114,13 @@ def listar_equipos(liNombres, liTags, liRegiones):
 
     return "\n".join(lineas)
 
+def validar_partidos_pendientes(fixture):
+    jornada = jornada_actual(fixture)
+    continua = True
+    if jornada == 0:
+        continua = False
+    return continua
+
 def jornada_actual(fixture):
     for grupoJornada in range(len(fixture)):
         for partido in fixture[grupoJornada]:
@@ -136,11 +141,6 @@ def partidos_pendientes(fixture, jornada):
 
 def listar_partidos_pendientes(fixture, liNombres):
     jornada = jornada_actual(fixture)
-
-    if jornada == 0:
-        print("El torneo ya terminó, no quedan partidos pendientes.")
-        return
-
     print(f"Actualmente se está jugando la jornada N° {jornada}")
     print("Los partidos pendientes son:")
 
