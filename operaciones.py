@@ -1,4 +1,5 @@
 import re
+import random
 
 
 def normalizar_string(string):
@@ -9,10 +10,15 @@ def normalizar_string(string):
 # VALIDACIONES
 # ============================================================
 
+def es_numerico(valor):
+    if valor.isdigit():
+        return int(valor)
+
+
 def validacion_de_rango(min, max, valor):
     try:
         while valor < min or valor > max:
-            print(f"Error. Ingrese un valor tiene que estar entre {min} a {max}")
+            print(f"Error. Ingrese un valor entre {min} a {max}")
             valor = es_numerico(input("Ingrese la operación que desea realizar: "))
 
         return valor
@@ -21,22 +27,20 @@ def validacion_de_rango(min, max, valor):
         print(f"ERROR. El valor ingresado no es numerico")
 
 
-def es_numerico(valor):
-    if valor.isdigit():
-        return int(valor)
+# ============================================================
+# REGISTRO
+# ============================================================
 
-
-def validar_suficientes_equipos(equipos):
+def validar_suficientes_equipos(equipos, cantidad):
     valido = True
 
-    if len(equipos) < 8:
+    if len(equipos) < cantidad:
         valido = False
 
     return valido
 
 
 def validar_registro_equipo(equipos, nombre, tag, region):
-
     regionesValidas = ("NA", "EU", "LATAM", "APAC", "KR", "BR", "OCE")
     valido = True
 
@@ -59,10 +63,6 @@ def validar_registro_equipo(equipos, nombre, tag, region):
     # Validar tag
     if tag == "":
         print("El tag no puede estar vacío.")
-        valido = False
-
-    if " " in tag:
-        print("El tag no puede tener espacios en medio.")
         valido = False
 
     tagNormalizado = normalizar_string(tag)
@@ -89,38 +89,26 @@ def validar_registro_equipo(equipos, nombre, tag, region):
     return valido
 
 
-# ============================================================
-# OPERACIONES DE EQUIPOS
-# ============================================================
-
-def registrar(equipos, posiciones, nombre, tag, region):
-    """
-    Agrega un equipo nuevo a la lista de diccionarios
-    y una fila en cero a posiciones.
-
-    El id del equipo queda determinado por su posición
-    (índice) en la lista.
-    """
-
+def registrar(equipos, nombre, tag, region):
     idNuevo = len(equipos)
 
     equipoNuevo = {
         "nombre": nombre,
         "tag": tag,
-        "region": region
-    }
+        "region": region,
+        "estadisticas": {
+            "PJ": 0,
+            "PG": 0,
+            "PP": 0,
+            "PTS": 0,
+        }}
 
     equipos.append(equipoNuevo)
-
-    # Por ahora posiciones sigue siendo una matriz independiente.
-    posiciones.append([0, 0, 0, 0])
 
     return idNuevo
 
 
-def registrar_equipo(equipos, posiciones):
-    """RF04-06: valida antes de registrar un equipo."""
-
+def registrar_equipo(equipos):
     print("\n--- Registrar equipo ---")
 
     nombre = input("Nombre del equipo: ").strip()
@@ -148,7 +136,6 @@ def registrar_equipo(equipos, posiciones):
     else:
         idEquipo = registrar(
             equipos,
-            posiciones,
             nombre,
             tag,
             region
@@ -160,12 +147,43 @@ def registrar_equipo(equipos, posiciones):
         )
 
 
+# ============================================================
+# FIXTURE
+# ============================================================
+
+def generar_partidos(cantidad_equipos, mapas):
+    partidos = []
+    ids = list(range(cantidad_equipos))
+    
+    # En un formato todos contra todos, la cantidad de jornadas es N - 1
+    total_jornadas = cantidad_equipos - 1
+    partidos_por_jornada = cantidad_equipos // 2
+
+    for jornada in range(1, total_jornadas + 1):
+        for i in range(partidos_por_jornada):
+            idA = ids[i]
+            # Emparejamos el primero con el último, el segundo con el penúltimo, etc.
+            idB = ids[(cantidad_equipos - 1) - i]
+            
+            # Sorteamos el índice del mapa
+            mapa_id = random.randint(0, len(mapas) - 1)
+            
+            # Estructura: [jornada, idA, idB, puntosA, puntosB, jugado, mapa_id]
+            partido = [jornada, idA, idB, 0, 0, 0, mapa_id]
+            partidos.append(partido)
+
+        # Rotación del algoritmo Round-Robin: 
+        # El equipo en el índice 0 queda fijo, el último pasa a la posición 1.
+        ids.insert(1, ids.pop())
+
+    return partidos
+
+
+# ============================================================
+# EQUIPOS
+# ============================================================
+
 def listar_equipos(equipos):
-    """RF11: arma el listado de equipos registrados para mostrar."""
-
-    if len(equipos) == 0:
-        return "Todavía no hay equipos registrados."
-
     lineas = []
 
     for i in range(len(equipos)):
@@ -181,343 +199,42 @@ def listar_equipos(equipos):
     return "\n".join(lineas)
 
 
-# ============================================================
-# FIXTURE
-# ============================================================
+def buscar_equipo(equipos, busqueda):
+    idEncontrado = -1
 
-def validar_partidos_pendientes(fixture):
-    jornada = jornada_actual(fixture)
+    idBuscado = es_numerico(busqueda)
 
-    continua = True
-
-    if jornada == 0:
-        continua = False
-
-    return continua
-
-
-def jornada_actual(fixture):
-    for grupoJornada in range(len(fixture)):
-
-        for partido in fixture[grupoJornada]:
-            _, _, jugado = partido
-
-            if jugado == 0:
-                return grupoJornada + 1
-
-    return 0
-
-
-def partidos_pendientes(fixture, jornada):
-    pendientes = []
-
-    for partido in fixture[jornada - 1]:
-        idA, idB, jugado = partido
-
-        if jugado == 0:
-            pendientes.append(partido)
-
-    return pendientes
-
-
-def listar_partidos_pendientes(fixture, equipos):
-    jornada = jornada_actual(fixture)
-
-    print(
-        f"Actualmente se está jugando la jornada N° {jornada}"
-    )
-
-    print("Los partidos pendientes son:")
-
-    for partido in partidos_pendientes(fixture, jornada):
-
-        idA, idB, jugado = partido
-
-        print(
-            f"{equipos[idA]['nombre']} vs "
-            f"{equipos[idB]['nombre']}"
-        )
-
-
-# ============================================================
-# RESULTADOS
-# ============================================================
-
-def pedir_puntaje(mensaje):
-    puntaje = es_numerico(input(mensaje))
-
-    while puntaje is None:
-        print("Error. Debe ingresar un número entero.")
-        puntaje = es_numerico(input(mensaje))
-
-    return puntaje
-
-
-def pedir_mapa(mapasHabilitados):
-    mapa = normalizar_string(
-        input(f"Ingrese el mapa jugado {mapasHabilitados}: ")
-    )
-
-    mapasNormalizados = [
-        normalizar_string(m)
-        for m in mapasHabilitados
-    ]
-
-    while mapa not in mapasNormalizados:
-        print(
-            f"Mapa inválido. Debe ser uno de: "
-            f"{mapasHabilitados}"
-        )
-
-        mapa = normalizar_string(
-            input("Ingrese el mapa jugado: ")
-        )
-
-    return mapa
-
-
-def registrar_resultados(
-    fixture,
-    historial,
-    posiciones,
-    equipos,
-    mapasHabilitados
-):
-
-    jornada = jornada_actual(fixture)
-
-    partidos = partidos_pendientes(
-        fixture,
-        jornada
-    )
-
-    partido_actual = partidos[0]
-
-    idA, idB, _ = partido_actual
-
-    equipoA = equipos[idA]["nombre"]
-    equipoB = equipos[idB]["nombre"]
-
-    print(
-        f"El partido actual es "
-        f"{equipoA} vs {equipoB}"
-    )
-
-    while True:
-
-        puntosA = pedir_puntaje(
-            f"Ingrese la puntuación de {equipoA}: "
-        )
-
-        puntosB = pedir_puntaje(
-            f"Ingrese la puntuación de {equipoB}: "
-        )
-
-        if puntosA == puntosB:
-            print(
-                "Error. No se permiten empates, "
-                "los puntajes no pueden ser iguales."
-            )
-
-        else:
-            break
-
-    mapa = pedir_mapa(mapasHabilitados)
-
-    partido_actual[2] = 1
-
-    historial.append(
-        [
-            jornada,
-            idA,
-            idB,
-            puntosA,
-            puntosB,
-            mapa
-        ]
-    )
-
-    actualizar_posiciones(
-        posiciones,
-        idA,
-        idB,
-        puntosA,
-        puntosB
-    )
-
-
-def actualizar_posiciones(
-    liPosiciones,
-    idA,
-    idB,
-    puntosA,
-    puntosB
-):
-    """
-    RF08: actualiza PJ, PG, PP y puntos
-    de ambos equipos tras cargar un resultado.
-    """
-
-    liPosiciones[idA][0] += 1
-    liPosiciones[idB][0] += 1
-
-    if puntosA > puntosB:
-
-        liPosiciones[idA][1] += 1
-        liPosiciones[idA][3] += 3
-        liPosiciones[idB][2] += 1
+    if idBuscado is not None:
+        if 0 <= idBuscado < len(equipos):
+            idEncontrado = idBuscado
 
     else:
+        tagNormalizado = normalizar_string(busqueda)
 
-        liPosiciones[idB][1] += 1
-        liPosiciones[idB][3] += 3
-        liPosiciones[idA][2] += 1
+        for i in range(len(equipos)):
+            if equipos[i]["tag"] == tagNormalizado:
+                idEncontrado = i
 
-
-# ============================================================
-# HISTORIAL
-# ============================================================
-
-def consultar_historial(historial, equipos):
-    """
-    RF12: arma el listado del historial de partidos jugados,
-    traduciendo los ids de equipo a nombres.
-    """
-
-    if len(historial) == 0:
-        return "Todavía no se jugó ningún partido."
-
-    lineas = []
-
-    for partido in historial:
-
-        jornada, idA, idB, puntosA, puntosB, mapa = partido
-
-        equipoA = equipos[idA]["nombre"]
-        equipoB = equipos[idB]["nombre"]
-
-        linea = (
-            f"Jornada {jornada}: "
-            f"{equipoA} {puntosA} - "
-            f"{puntosB} {equipoB} "
-            f"(Mapa: {mapa})"
-        )
-
-        lineas.append(linea)
-
-    return "\n".join(lineas)
+    return idEncontrado
 
 
-# ============================================================
-# RANKING
-# ============================================================
+def buscar_y_mostrar_equipo(equipos):
+    busqueda = input("Ingrese ID o tag del equipo a buscar: ").strip()
+    
+    idEquipo = buscar_equipo(equipos, busqueda)
 
-def generar_ranking(liPosiciones):
-    """
-    RF18: genera el orden de los equipos por índice,
-    usando lambda.
-
-    Ordena por puntos de mayor a menor,
-    y en caso de empate por PG.
-    """
-
-    indices = list(range(len(liPosiciones)))
-
-    ranking = sorted(
-        indices,
-        key=lambda i: (
-            liPosiciones[i][3],
-            liPosiciones[i][1]
-        ),
-        reverse=True
-    )
-
-    return ranking
+    if idEquipo == -1:
+        print("No se encontró ningún equipo con ese ID o tag.")
+    else:
+        print(mostrar_equipo(equipos, idEquipo))
 
 
-def tabla_de_posiciones(equipos, liPosiciones):
-    """
-    RF13/RF22: arma la tabla de posiciones ordenada
-    de mayor a menor puntaje, con desempate por PG.
-    """
-
-    if len(equipos) == 0:
-        return "Todavía no hay equipos registrados."
-
-    ranking = generar_ranking(liPosiciones)
-
-    encabezado = (
-        f"{'Pos':<4}"
-        f"{'Equipo':<20}"
-        f"{'Tag':<8}"
-        f"{'Región':<8}"
-        f"{'PJ':<5}"
-        f"{'PG':<5}"
-        f"{'PP':<5}"
-        f"{'Pts':<5}"
-    )
-
-    lineas = [encabezado]
-
-    pos = 1
-
-    for i in ranking:
-
-        pj = liPosiciones[i][0]
-        pg = liPosiciones[i][1]
-        pp = liPosiciones[i][2]
-        pts = liPosiciones[i][3]
-
-        linea = (
-            f"{pos:<4}"
-            f"{equipos[i]['nombre']:<20}"
-            f"{equipos[i]['tag']:<8}"
-            f"{equipos[i]['region']:<8}"
-            f"{pj:<5}"
-            f"{pg:<5}"
-            f"{pp:<5}"
-            f"{pts:<5}"
-        )
-
-        lineas.append(linea)
-
-        pos += 1
-
-    return "\n".join(lineas)
-
-
-# ============================================================
-# BÚSQUEDA Y DETALLE DE EQUIPO
-# ============================================================
-
-def buscar_equipo(equipos, busqueda):
-    """
-    RF13: busca por id (número) o por tag.
-    Devuelve el índice, o -1 si no existe.
-    """
-
-    if busqueda.isdigit():
-
-        idBuscado = int(busqueda)
-
-        if 0 <= idBuscado < len(equipos):
-            return idBuscado
-
-        return -1
-
-    tagNormalizado = normalizar_string(busqueda)
-
-    for i in range(len(equipos)):
-
-        if equipos[i]["tag"] == tagNormalizado:
-            return i
-
-    return -1
-
-
-def mostrar_equipo(equipos, liPosiciones, idEquipo):
-
-    pj, pg, pp, pts = liPosiciones[idEquipo]
+def mostrar_equipo(equipos, idEquipo):
+    estadisticas = equipos[idEquipo]["estadisticas"]
+    pj = estadisticas["PJ"]
+    pg = estadisticas["PG"]
+    pp = estadisticas["PP"]
+    pts = estadisticas["PTS"]
 
     porcentaje = (
         (pg / pj * 100)
@@ -536,207 +253,334 @@ def mostrar_equipo(equipos, liPosiciones, idEquipo):
 
 
 # ============================================================
+# PARTIDOS
+# ============================================================
+
+def validar_resultado_valorant(puntosA, puntosB):
+    max_p = max(puntosA, puntosB)
+    min_p = min(puntosA, puntosB)
+    puntaje_valido = True
+    # Regla 1: Alguien tiene que llegar a 13 sí o sí
+    if max_p < 13:
+        print("Error: Un equipo debe alcanzar al menos 13 rondas para ganar (ej: 13-8).")
+        puntaje_valido = False
+        
+    # Regla 2: Si el ganador tiene 13, el perdedor debe tener 11 o menos
+    if max_p == 13:
+        if min_p > 11:
+            print("Error: Si llegan a 12-12, hay Overtime. El resultado no puede ser 13-12.")
+            puntaje_valido = False
+            
+    # Regla 3: Si hay Overtime (más de 13 puntos), la diferencia DEBE ser exactamente 2
+    if max_p > 13:
+        if (max_p - min_p) != 2:
+            print("Error: En Overtime, se debe ganar por una diferencia exacta de 2 puntos (ej: 14-12, 16-14).")
+            puntaje_valido = False
+
+    return puntaje_valido
+
+
+def jornada_actual(fixture):
+    for partido in fixture:
+        nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
+        if jugado == 0:
+            return nJornada
+    return 0
+
+
+def partidos_pendientes(fixture, jornada):
+    pendientes = []
+    for partido in fixture:
+        nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
+        if nJornada == jornada and jugado == 0:
+            pendientes.append(partido)
+    return pendientes
+
+
+def listar_partidos_pendientes(jornada, fixture, equipos):
+    print(
+        f"Actualmente se está jugando la jornada N° {jornada}"
+    )
+
+    print("Los partidos pendientes son:")
+
+    for partido in partidos_pendientes(fixture, jornada):
+        nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
+    
+        print(
+            f"{equipos[idA]['nombre']} vs "
+            f"{equipos[idB]['nombre']}"
+        )
+
+
+def pedir_puntaje(mensaje):
+    puntaje = es_numerico(input(mensaje))
+
+    while puntaje is None:
+        print("Error. Debe ingresar un número entero.")
+        puntaje = es_numerico(input(mensaje))
+
+    return puntaje
+
+
+def registrar_resultados(jornada, fixture, equipos):
+    pendientes = partidos_pendientes(fixture, jornada)
+    partido_actual = pendientes[0]
+    nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido_actual
+
+    equipoA = equipos[idA]["nombre"]
+    equipoB = equipos[idB]["nombre"]
+
+    print(
+            f"El partido actual es "
+            f"{equipoA} vs {equipoB}"
+        )
+
+    while True:
+            ganadasA = pedir_puntaje(f"Ingrese la puntuación de {equipoA}: ")
+            ganadasB = pedir_puntaje(f"Ingrese la puntuación de {equipoB}: ")
+
+            if ganadasA == ganadasB:
+                print("Error. No se permiten empates en Valorant.")
+            
+            elif not validar_resultado_valorant(ganadasA, ganadasB):
+                print("Por favor, ingrese los puntajes nuevamente.")
+                
+            else:
+                break
+
+    partido_actual[3] = ganadasA
+    partido_actual[4] = ganadasB
+    partido_actual[5] = 1
+
+    actualizar_estadisticas(equipos, idA, idB, ganadasA, ganadasB)
+
+
+def actualizar_estadisticas(equipos, idA, idB, ganadasA, ganadasB):
+    equipos[idA]["estadisticas"]["PJ"] += 1
+    equipos[idB]["estadisticas"]["PJ"] += 1
+
+    if ganadasA > ganadasB:
+
+        equipos[idA]["estadisticas"]["PG"] += 1
+        equipos[idB]["estadisticas"]["PP"] += 1
+        equipos[idA]["estadisticas"]["PTS"] += 3
+
+    else:
+
+        equipos[idB]["estadisticas"]["PG"] += 1
+        equipos[idA]["estadisticas"]["PP"] += 1
+        equipos[idB]["estadisticas"]["PTS"] += 3
+
+
+# ============================================================
+# HISTORIAL
+# ============================================================
+
+def consultar_historial(fixture, equipos, MAPAS):
+    lineas = []
+
+    for partido in fixture:
+        nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
+        if jugado == 1:
+        
+            equipoA = equipos[idA]["nombre"]
+            equipoB = equipos[idB]["nombre"]
+
+            linea = (
+                f"Jornada {nJornada}: "
+                f"{equipoA} {puntosA} - "
+                f"{puntosB} {equipoB} "
+                f"(Mapa: {MAPAS[mapa_id]})"
+            )
+
+            lineas.append(linea)
+
+    return "\n".join(lineas)
+
+
+# ============================================================
+# RANKING Y TABLA DE POSICIONES
+# ============================================================
+
+def generar_ranking(equipos):
+    indices = list(range(len(equipos)))
+
+    ranking = sorted(
+        indices,
+        key=lambda i: (
+            equipos[i]["estadisticas"]["PTS"],
+            equipos[i]["estadisticas"]["PG"]
+        ),
+        reverse=True
+    )
+
+    return ranking
+
+
+def tabla_de_posiciones(equipos):
+    ranking = generar_ranking(equipos)
+
+    encabezado = (
+        f"{'Pos':<4}"
+        f"{'Equipo':<20}"
+        f"{'Tag':<8}"
+        f"{'Región':<8}"
+        f"{'PJ':<5}"
+        f"{'PG':<5}"
+        f"{'PP':<5}"
+        f"{'Pts':<5}"
+    )
+
+    lineas = [encabezado]
+
+    for pos, i in enumerate(ranking, start=1):
+        est = equipos[i]["estadisticas"]
+
+        linea = (
+            f"{pos:<4}"
+            f"{equipos[i]['nombre']:<20}"
+            f"{equipos[i]['tag']:<8}"
+            f"{equipos[i]['region']:<8}"
+            f"{est['PJ']:<5}"
+            f"{est['PG']:<5}"
+            f"{est['PP']:<5}"
+            f"{est['PTS']:<5}"
+        )
+
+        lineas.append(linea)
+
+    return "\n".join(lineas)
+
+
+# ============================================================
 # FUNCIONES DE INFORME
 # ============================================================
 
-def detectar_lideres(liPosiciones):
-    """
-    RF20: detecta el/los equipo(s) con el máximo puntaje,
-    SIN aplicar desempate.
-    """
-
-    maxPuntos = max(
-        fila[3]
-        for fila in liPosiciones
-    )
+def detectar_lideres(equipos):
+    """Ids de los equipos con el máximo de puntos (sin desempate)."""
+    max_puntos = max(e["estadisticas"]["PTS"] for e in equipos)
 
     lideres = [
         i
-        for i in range(len(liPosiciones))
-        if liPosiciones[i][3] == maxPuntos
+        for i in range(len(equipos))
+        if equipos[i]["estadisticas"]["PTS"] == max_puntos
     ]
 
     return lideres
 
 
-def top_3(liPosiciones):
-    """
-    RF17/RF19: top 3 del ranking,
-    usando lambda en generar_ranking + slicing.
-    """
-
-    ranking = generar_ranking(liPosiciones)
-
-    return ranking[:3]
+def top_3(equipos):
+    return generar_ranking(equipos)[:3]
 
 
-def racha_maxima(historial, cantEquipos):
-    """
-    RF16: racha de victorias consecutivas más larga
-    por equipo.
+def racha_maxima(partidos, cantidad_equipos):
+    """Racha más larga de victorias seguidas. Devuelve (ids, valor)."""
+    racha_actual = [0] * cantidad_equipos
+    racha_max = [0] * cantidad_equipos
 
-    Devuelve el/los equipos que la alcanzaron
-    y el valor.
-    """
+    for partido in partidos:
+        jornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
 
-    rachaActual = [0] * cantEquipos
-    rachaMax = [0] * cantEquipos
+        if jugado == 1:
+            if puntosA > puntosB:
+                ganador, perdedor = idA, idB
+            else:
+                ganador, perdedor = idB, idA
 
-    for partido in historial:
+            racha_actual[ganador] += 1
+            racha_actual[perdedor] = 0
 
-        jornada, idA, idB, puntosA, puntosB, mapa = partido
+            if racha_actual[ganador] > racha_max[ganador]:
+                racha_max[ganador] = racha_actual[ganador]
 
-        if puntosA > puntosB:
-            ganador, perdedor = idA, idB
+    valor_max = max(racha_max)
 
-        else:
-            ganador, perdedor = idB, idA
-
-        rachaActual[ganador] += 1
-        rachaActual[perdedor] = 0
-
-        if rachaActual[ganador] > rachaMax[ganador]:
-            rachaMax[ganador] = rachaActual[ganador]
-
-    valorMax = (
-        max(rachaMax)
-        if rachaMax
-        else 0
-    )
-
-    equiposRacha = [
+    equipos_racha = [
         i
-        for i in range(cantEquipos)
-        if rachaMax[i] == valorMax
+        for i in range(cantidad_equipos)
+        if racha_max[i] == valor_max
     ]
 
-    return equiposRacha, valorMax
+    return equipos_racha, valor_max
 
 
-def equipos_invictos(equipos, liPosiciones):
-    """
-    RF-invictos: equipos con PJ>0 y PP==0.
-    Usa comprensión de listas.
-    """
-
+def equipos_invictos(equipos):
+    """Nombres de los equipos con PJ > 0 y PP == 0."""
     return [
         equipos[i]["nombre"]
         for i in range(len(equipos))
-        if liPosiciones[i][0] > 0
-        and liPosiciones[i][2] == 0
+        if equipos[i]["estadisticas"]["PJ"] > 0
+        and equipos[i]["estadisticas"]["PP"] == 0
     ]
 
 
-def resumen_general(equipos, liPosiciones, historial):
-    """RF21: resumen general del torneo."""
+def resumen_general(equipos, partidos):
+    partidos_jugados = 0
+    total_rounds = 0
 
-    partidosJugados = len(historial)
+    for partido in partidos:
+        if partido[5] == 1:
+            partidos_jugados += 1
+            total_rounds += partido[3] + partido[4]
 
-    totalRounds = sum(
-        p[3] + p[4]
-        for p in historial
-    )
+    if partidos_jugados > 0:
+        promedio = total_rounds / partidos_jugados
+    else:
+        promedio = 0
 
-    promedioRounds = (
-        totalRounds / partidosJugados
-        if partidosJugados > 0
-        else 0
-    )
-
-    lideres = detectar_lideres(liPosiciones)
-
-    nombresLideres = [
-        equipos[i]["nombre"]
-        for i in lideres
-    ]
+    lideres = detectar_lideres(equipos)
+    nombres = [equipos[i]["nombre"] for i in lideres]
 
     return (
         f"Equipos registrados: {len(equipos)}\n"
-        f"Partidos jugados: {partidosJugados}\n"
-        f"Promedio general de rounds por partido: "
-        f"{promedioRounds:.1f}\n"
-        f"Líder(es) del torneo: "
-        f"{', '.join(nombresLideres) if nombresLideres else 'Sin datos'}"
+        f"Partidos jugados: {partidos_jugados}\n"
+        f"Promedio de rounds por partido: {promedio:.1f}\n"
+        f"Líder(es) del torneo: {', '.join(nombres)}"
     )
 
 
-def informe_lideres(equipos, liPosiciones):
-
-    lideres = detectar_lideres(liPosiciones)
-
-    nombres = [
-        equipos[i]["nombre"]
-        for i in lideres
-    ]
-
-    return (
-        f"Líder(es) del torneo (máximo puntaje): "
-        f"{', '.join(nombres)}"
-    )
+def informe_lideres(equipos):
+    nombres = [equipos[i]["nombre"] for i in detectar_lideres(equipos)]
+    return f"Líder(es) del torneo (máximo puntaje): {', '.join(nombres)}"
 
 
-def informe_top3(equipos, liPosiciones):
-
-    top = top_3(liPosiciones)
-
+def informe_top3(equipos):
     lineas = ["Top 3:"]
 
-    for pos, i in enumerate(top, start=1):
-
+    for pos, i in enumerate(top_3(equipos), start=1):
         lineas.append(
-            f"{pos}. "
-            f"{equipos[i]['nombre']} "
-            f"[{equipos[i]['tag']}] - "
-            f"{liPosiciones[i][3]} pts"
+            f"{pos}. {equipos[i]['nombre']} [{equipos[i]['tag']}] - "
+            f"{equipos[i]['estadisticas']['PTS']} pts"
         )
 
     return "\n".join(lineas)
 
 
-def informe_racha(equipos, historial, cantEquipos):
-
-    equiposRacha, valor = racha_maxima(
-        historial,
-        cantEquipos
-    )
+def informe_racha(equipos, partidos):
+    ids, valor = racha_maxima(partidos, len(equipos))
 
     if valor == 0:
         return "Todavía no hay rachas de victorias registradas."
 
-    nombres = [
-        equipos[i]["nombre"]
-        for i in equiposRacha
-    ]
+    nombres = [equipos[i]["nombre"] for i in ids]
 
     return (
-        f"Racha de victorias más larga: "
-        f"{valor} partidos ganados seguidos "
+        f"Racha de victorias más larga: {valor} partidos seguidos "
         f"({', '.join(nombres)})"
     )
 
 
-def informe_invictos(equipos, liPosiciones):
-
-    invictos = equipos_invictos(
-        equipos,
-        liPosiciones
-    )
+def informe_invictos(equipos):
+    invictos = equipos_invictos(equipos)
 
     if not invictos:
         return "No hay equipos invictos."
 
-    return (
-        f"Equipos invictos: "
-        f"{', '.join(invictos)}"
-    )
+    return f"Equipos invictos: {', '.join(invictos)}"
 
-
-# ============================================================
-# SUBMENÚ DE INFORMES
-# ============================================================
 
 def menu_informes():
-
     print("""
 --- Informes ---
 1. Líder(es) del torneo
@@ -751,13 +595,7 @@ def menu_informes():
         input("Ingrese la operación que desea realizar: ")
     )
 
-    operacion = validacion_de_rango(
-        1,
-        6,
-        operacion
-    )
-
-    return operacion
+    return validacion_de_rango(1, 6, operacion)
 
 
 # ============================================================
@@ -768,15 +606,14 @@ def menu(info):
 
     print(f"""
 ----> {info[0]} - {info[1]} <----
-1. Registrar equipo
-2. Listar equipos
+1. Listar equipos
+2. Buscar estadisticas de equipo
 3. Ver partidos pendientes
 4. Cargar resultado
 5. Consultar historial
-6. Buscar equipo
-7. Tabla de posiciones
-8. Informes 
-9. Salir
+6. Tabla de posiciones
+7. Informes 
+8. Salir
     """)
 
     operacion = es_numerico(
@@ -785,7 +622,7 @@ def menu(info):
 
     operacion = validacion_de_rango(
         1,
-        9,
+        8,
         operacion
     )
 
