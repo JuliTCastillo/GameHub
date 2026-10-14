@@ -1,0 +1,14 @@
+{
+    "torneo": {
+        "nombre": "Copa Buenos Aires 2026",
+        "juego": "Valorant",
+        "cantidad_equipos": 8
+    },
+    "reglas": {
+        "puntos_para_ganar": 13,
+        "diferencia_minima": 2,
+        "permite_overtime": true
+    },
+    "regiones_validas": ["NA", "EU", "LATAM", "APAC", "KR", "BR", "OCE"],
+    "mapas": ["Bind", "Haven", "Ascent"]
+}

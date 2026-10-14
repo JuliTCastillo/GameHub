@@ -1,9 +1,149 @@
 import re
 import random
-
+import json
 
 def normalizar_string(string):
     return re.sub(r"\s+", "", string.upper())
+
+
+# ============================================================
+# CONFIGURACION DE TORNEO
+# ============================================================
+
+def cargar_configuracion(nombre_archivo):
+    """Lee un archivo JSON y devuelve su contenido como diccionario.
+    Si algo falla, avisa y devuelve None."""
+    try:
+        # "with" abre el archivo y lo cierra solo al terminar el bloque
+        with open(nombre_archivo, "r", encoding="utf-8") as archivo:
+            config = json.load(archivo)
+
+    except FileNotFoundError:
+        print(f"Error: no se encontró el archivo '{nombre_archivo}'.")
+        return None
+
+    except json.JSONDecodeError:
+        print(f"Error: '{nombre_archivo}' no tiene un formato JSON válido.")
+        return None
+
+    return config
+
+
+def validar_configuracion(config):
+    """Chequea que la configuración tenga todo lo necesario."""
+
+    # 0) Que el JSON sea un diccionario (podría ser una lista, por ejemplo)
+    if not isinstance(config, dict):
+        print("La configuración debe ser un objeto JSON { ... }.")
+        return False
+
+    valida = True
+
+    # 1) Que existan las secciones principales
+    secciones = ("torneo", "reglas", "regiones_validas", "mapas")
+    for seccion in secciones:
+        if seccion not in config:
+            print(f"Falta la sección '{seccion}' en la configuración.")
+            valida = False
+
+    if not valida:
+        return valida
+
+    # 2) Que torneo y reglas sean diccionarios y tengan todas sus claves
+    claves_requeridas = {
+        "torneo": ("nombre", "juego", "cantidad_equipos"),
+        "reglas": ("puntos_para_ganar", "diferencia_minima", "permite_overtime"),
+    }
+
+    for seccion in claves_requeridas:
+        if not isinstance(config[seccion], dict):
+            print(f"La sección '{seccion}' debe ser un objeto JSON {{ ... }}.")
+            valida = False
+        else:
+            for clave in claves_requeridas[seccion]:
+                if clave not in config[seccion]:
+                    print(f"Falta '{clave}' dentro de '{seccion}'.")
+                    valida = False
+
+    if not valida:
+        return valida
+
+    torneo = config["torneo"]
+    reglas = config["reglas"]
+
+    # 3) Tipos de los valores
+    # (bool es un subtipo de int en Python, por eso se excluye aparte)
+    cantidad = torneo["cantidad_equipos"]
+    puntos = reglas["puntos_para_ganar"]
+    dif = reglas["diferencia_minima"]
+
+    if not isinstance(cantidad, int) or isinstance(cantidad, bool):
+        print("'cantidad_equipos' debe ser un número entero.")
+        valida = False
+
+    if not isinstance(puntos, int) or isinstance(puntos, bool):
+        print("'puntos_para_ganar' debe ser un número entero.")
+        valida = False
+
+    if not isinstance(dif, int) or isinstance(dif, bool):
+        print("'diferencia_minima' debe ser un número entero.")
+        valida = False
+
+    if not isinstance(reglas["permite_overtime"], bool):
+        print("'permite_overtime' debe ser true o false.")
+        valida = False
+
+    if not isinstance(torneo["nombre"], str) or torneo["nombre"].strip() == "":
+        print("'nombre' debe ser un texto no vacío.")
+        valida = False
+
+    if not isinstance(torneo["juego"], str) or torneo["juego"].strip() == "":
+        print("'juego' debe ser un texto no vacío.")
+        valida = False
+
+    # Si los tipos están mal, comparar números podría fallar
+    if not valida:
+        return valida
+
+    # 4) Rangos y coherencia de los números
+    if cantidad < 2:
+        print("Tiene que haber al menos 2 equipos.")
+        valida = False
+
+    if cantidad % 2 != 0:
+        print("La cantidad de equipos debe ser par.")
+        valida = False
+
+    if puntos < 1:
+        print("Los puntos para ganar deben ser al menos 1.")
+        valida = False
+
+    if dif < 1:
+        print("La diferencia mínima debe ser al menos 1.")
+        valida = False
+
+    if dif > puntos:
+        print("La diferencia mínima no puede ser mayor a los puntos para ganar.")
+        valida = False
+
+    # 5) Mapas: lista no vacía
+    if not isinstance(config["mapas"], list) or len(config["mapas"]) == 0:
+        print("'mapas' debe ser una lista con al menos un mapa.")
+        valida = False
+
+    # 6) Regiones: lista no vacía, y cada una ya normalizada
+    regiones = config["regiones_validas"]
+
+    if not isinstance(regiones, list) or len(regiones) == 0:
+        print("'regiones_validas' debe ser una lista con al menos una región.")
+        valida = False
+    else:
+        for region in regiones:
+            if not isinstance(region, str) or region != normalizar_string(region):
+                print(f"La región {region!r} debe estar en MAYÚSCULAS y sin espacios.")
+                valida = False
+
+    return valida
 
 
 # ============================================================
@@ -40,8 +180,7 @@ def validar_suficientes_equipos(equipos, cantidad):
     return valido
 
 
-def validar_registro_equipo(equipos, nombre, tag, region):
-    regionesValidas = ("NA", "EU", "LATAM", "APAC", "KR", "BR", "OCE")
+def validar_registro_equipo(equipos, nombre, tag, region, regionesValidas):
     valido = True
 
     # Validar nombre
@@ -82,8 +221,7 @@ def validar_registro_equipo(equipos, nombre, tag, region):
     if regionNormalizada not in regionesValidas:
         print(
             f"Región inválida. Las regiones permitidas son: "
-            f"{regionesValidas}."
-        )
+            f"{', '.join(regionesValidas)}.")
         valido = False
 
     return valido
@@ -108,7 +246,7 @@ def registrar(equipos, nombre, tag, region):
     return idNuevo
 
 
-def registrar_equipo(equipos):
+def registrar_equipo(equipos, regionesValidas):
     print("\n--- Registrar equipo ---")
 
     nombre = input("Nombre del equipo: ").strip()
@@ -117,17 +255,15 @@ def registrar_equipo(equipos):
         input("Tag (código corto): ")
     )
 
-    region = normalizar_string(
-        input(
-            'Región("NA", "EU", "LATAM", "APAC", "KR", "BR", "OCE"): '
-        )
-    )
+    region = normalizar_string(input(f"Región ({', '.join(regionesValidas)}): ")
+)
 
     valido = validar_registro_equipo(
         equipos,
         nombre,
         tag,
-        region
+        region,
+        regionesValidas
     )
 
     if not valido:
@@ -256,25 +392,38 @@ def mostrar_equipo(equipos, idEquipo):
 # PARTIDOS
 # ============================================================
 
-def validar_resultado_valorant(puntosA, puntosB):
+def validar_resultado(puntosA, puntosB, reglas):
+    puntos_para_ganar = reglas["puntos_para_ganar"]
+    dif_min = reglas["diferencia_minima"]
+    overtime = reglas["permite_overtime"]
+
     max_p = max(puntosA, puntosB)
     min_p = min(puntosA, puntosB)
     puntaje_valido = True
-    # Regla 1: Alguien tiene que llegar a 13 sí o sí
-    if max_p < 13:
-        print("Error: Un equipo debe alcanzar al menos 13 rondas para ganar (ej: 13-8).")
+
+    # Regla 1: alguien tiene que llegar al objetivo sí o sí
+    if max_p < puntos_para_ganar:
+        print(f"Error: un equipo debe alcanzar al menos {puntos_para_ganar} "
+              f"para ganar.")
         puntaje_valido = False
-        
-    # Regla 2: Si el ganador tiene 13, el perdedor debe tener 11 o menos
-    if max_p == 13:
-        if min_p > 11:
-            print("Error: Si llegan a 12-12, hay Overtime. El resultado no puede ser 13-12.")
+
+    # Regla 2: si el ganador llegó justo al objetivo, el perdedor debe quedar
+    # a la diferencia mínima o más lejos
+    if max_p == puntos_para_ganar:
+        if min_p > puntos_para_ganar - dif_min:
+            print(f"Error: con {puntos_para_ganar} puntos, el rival puede tener "
+                  f"como máximo {puntos_para_ganar - dif_min}.")
             puntaje_valido = False
-            
-    # Regla 3: Si hay Overtime (más de 13 puntos), la diferencia DEBE ser exactamente 2
-    if max_p > 13:
-        if (max_p - min_p) != 2:
-            print("Error: En Overtime, se debe ganar por una diferencia exacta de 2 puntos (ej: 14-12, 16-14).")
+
+    # Regla 3: pasar el objetivo solo se permite si hay overtime
+    if max_p > puntos_para_ganar:
+        if not overtime:
+            print(f"Error: este juego no tiene overtime, "
+                  f"el máximo es {puntos_para_ganar}.")
+            puntaje_valido = False
+        elif (max_p - min_p) != dif_min:
+            print(f"Error: en overtime, la diferencia debe ser exactamente "
+                  f"{dif_min}.")
             puntaje_valido = False
 
     return puntaje_valido
@@ -323,7 +472,7 @@ def pedir_puntaje(mensaje):
     return puntaje
 
 
-def registrar_resultados(jornada, fixture, equipos):
+def registrar_resultados(jornada, fixture, equipos, reglas):
     pendientes = partidos_pendientes(fixture, jornada)
     partido_actual = pendientes[0]
     nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido_actual
@@ -341,9 +490,9 @@ def registrar_resultados(jornada, fixture, equipos):
             ganadasB = pedir_puntaje(f"Ingrese la puntuación de {equipoB}: ")
 
             if ganadasA == ganadasB:
-                print("Error. No se permiten empates en Valorant.")
+                print("Error. No se permiten empates.")
             
-            elif not validar_resultado_valorant(ganadasA, ganadasB):
+            elif not validar_resultado(ganadasA, ganadasB, reglas):
                 print("Por favor, ingrese los puntajes nuevamente.")
                 
             else:
@@ -377,7 +526,7 @@ def actualizar_estadisticas(equipos, idA, idB, ganadasA, ganadasB):
 # HISTORIAL
 # ============================================================
 
-def consultar_historial(fixture, equipos, MAPAS):
+def consultar_historial(fixture, equipos, mapas):
     lineas = []
 
     for partido in fixture:
@@ -391,7 +540,7 @@ def consultar_historial(fixture, equipos, MAPAS):
                 f"Jornada {nJornada}: "
                 f"{equipoA} {puntosA} - "
                 f"{puntosB} {equipoB} "
-                f"(Mapa: {MAPAS[mapa_id]})"
+                f"(Mapa: {mapas[mapa_id]})"
             )
 
             lineas.append(linea)
@@ -535,7 +684,7 @@ def resumen_general(equipos, partidos):
     return (
         f"Equipos registrados: {len(equipos)}\n"
         f"Partidos jugados: {partidos_jugados}\n"
-        f"Promedio de rounds por partido: {promedio:.1f}\n"
+        f"Promedio de puntos por partido: {promedio:.1f}\n"
         f"Líder(es) del torneo: {', '.join(nombres)}"
     )
 

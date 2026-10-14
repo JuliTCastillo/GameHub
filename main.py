@@ -1,21 +1,28 @@
 from operaciones import *
 
 def main():
-    # CONFIGURACION PREVIA
-    INFO_TORNEO = (
-        "Copa Buenos Aires 2026",   # nombre del torneo
-        "Valorant",                  # juego
-        "8 equipos - 7 jornadas - 4 partidos por jornada - todos contra todos"  # formato
-    )
-    cantidad_equipos = 8
 
-    MAPAS = ("Bind", "Haven", "Ascent")
+    #CONFIGURACION
+    CONFIG = cargar_configuracion("GameHub/config_torneo.json")
+
+    if CONFIG is None or not validar_configuracion(CONFIG):
+        print("No se puede iniciar el programa sin una configuración válida.")
+        return
+
+    CANT_EQUIPOS = CONFIG["torneo"]["cantidad_equipos"]
+    INFO_TORNEO = (
+        CONFIG["torneo"]["nombre"],
+        CONFIG["torneo"]["juego"],
+        f"{CANT_EQUIPOS} equipos - todos contra todos")
+    REGIONES_VALIDAS = CONFIG["regiones_validas"]
+    MAPAS = CONFIG["mapas"]
+    REGLAS = CONFIG["reglas"]
 
     # REGISTROS
     # En caso de ser definidios previamente el programa no los reescribira, en cambio si estan vacios si.
 
-    # Lista de diccionarios con los 8 equipos ya registrados y sus estadísticas integradas
-    equipos = [
+    # Lista de diccionarios con los 8 EQUIPOS ya registrados y sus estadísticas integradas
+    EQUIPOS = [
         {
             "nombre": "Sentinels", "tag": "SEN", "region": "NA",
             "estadisticas": {"PJ": 7, "PG": 7, "PP": 0, "PTS": 21}
@@ -52,7 +59,7 @@ def main():
 
     # Lista unificada de fixture e historial
     # Formato: [jornada, idA, idB, puntosA, puntosB, jugado, mapa_id]
-    partidos = [
+    FIXTURE = [
         # Jornada 1
         [1, 0, 7, 13, 5, 1, 0],
         [1, 1, 6, 13, 9, 1, 1],
@@ -97,65 +104,65 @@ def main():
     ]
 
     # PROGRAMA
-    while not validar_suficientes_equipos(equipos, cantidad_equipos):
-        print(f"Cantidad actual de equipos {len(equipos)} / {cantidad_equipos}")
-        registrar_equipo(equipos)
+    while not validar_suficientes_equipos(EQUIPOS, CANT_EQUIPOS):
+        print(f"Cantidad actual de equipos {len(EQUIPOS)} / {CANT_EQUIPOS}")
+        registrar_equipo(EQUIPOS, REGIONES_VALIDAS)
 
     print("Se ha completado el registro de equipos")
 
-    if len(partidos) == 0:
-        partidos = generar_partidos(cantidad_equipos, MAPAS)
+    if len(FIXTURE) == 0:
+        FIXTURE = generar_partidos(CANT_EQUIPOS, MAPAS)
     
     valor = menu(INFO_TORNEO)
     
     while valor != 8:
-        jornada = jornada_actual(partidos)
+        jornada = jornada_actual(FIXTURE)
         if valor == 1:
-            print(listar_equipos(equipos))
+            print(listar_equipos(EQUIPOS))
 
         if valor == 2:
-            buscar_y_mostrar_equipo(equipos)
+            buscar_y_mostrar_equipo(EQUIPOS)
 
         if valor == 3:
             if jornada != 0:
-                listar_partidos_pendientes(jornada, partidos, equipos)
+                listar_partidos_pendientes(jornada, FIXTURE, EQUIPOS)
             else:
                 print("El torneo ya terminó, no quedan partidos pendientes.")
 
         if valor == 4:
             if jornada != 0:
-                registrar_resultados(jornada, partidos, equipos)
+                registrar_resultados(jornada, FIXTURE, EQUIPOS, REGLAS)
             else:
                 print("El torneo ya terminó, no quedan partidos a los que cargarle resultados.")
 
         if valor == 5:
-            historial = consultar_historial(partidos, equipos, MAPAS)
+            historial = consultar_historial(FIXTURE, EQUIPOS, MAPAS)
             if historial == "":
                 print("Todavía no se jugó ningún partido.")
             else:
                 print(historial)
 
         if valor == 6:
-            print(tabla_de_posiciones(equipos))
+            print(tabla_de_posiciones(EQUIPOS))
 
         if valor == 7:
             opcion_informe = menu_informes()
 
             while opcion_informe != 6:
                 if opcion_informe == 1:
-                    print(informe_lideres(equipos))
+                    print(informe_lideres(EQUIPOS))
 
                 if opcion_informe == 2:
-                    print(informe_top3(equipos))
+                    print(informe_top3(EQUIPOS))
 
                 if opcion_informe == 3:
-                    print(informe_racha(equipos, partidos))
+                    print(informe_racha(EQUIPOS, FIXTURE))
 
                 if opcion_informe == 4:
-                    print(informe_invictos(equipos))
+                    print(informe_invictos(EQUIPOS))
 
                 if opcion_informe == 5:
-                    print(resumen_general(equipos, partidos))
+                    print(resumen_general(EQUIPOS, FIXTURE))
 
                 opcion_informe = menu_informes()
 
