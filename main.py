@@ -2,7 +2,7 @@ from operaciones import *
 
 def main():
 
-    #CONFIGURACION
+    # CONFIGURACION
     CONFIG = cargar_configuracion("GameHub/config_torneo.json")
 
     if CONFIG is None or not validar_configuracion(CONFIG):
@@ -19,89 +19,17 @@ def main():
     REGLAS = CONFIG["reglas"]
 
     # REGISTROS
-    # En caso de ser definidios previamente el programa no los reescribira, en cambio si estan vacios si.
+    # En caso de que los equipos sean definidios previamente el programa no los reescribira, en cambio si estan vacios si
+    ARCH_EQUIPOS = "GameHub/equipos.json"
+    ARCH_PARTIDOS = "GameHub/partidos.json"
 
-    # Lista de diccionarios con los 8 EQUIPOS ya registrados y sus estadísticas integradas
-    EQUIPOS = [
-        {
-            "nombre": "Sentinels", "tag": "SEN", "region": "NA",
-            "estadisticas": {"PJ": 7, "PG": 7, "PP": 0, "PTS": 21}
-        },
-        {
-            "nombre": "Loud", "tag": "LOUD", "region": "BR",
-            "estadisticas": {"PJ": 7, "PG": 3, "PP": 4, "PTS": 9}
-        },
-        {
-            "nombre": "Fnatic", "tag": "FNC", "region": "EU",
-            "estadisticas": {"PJ": 7, "PG": 1, "PP": 6, "PTS": 3}
-        },
-        {
-            "nombre": "NRG", "tag": "NRG", "region": "NA",
-            "estadisticas": {"PJ": 7, "PG": 4, "PP": 3, "PTS": 12}
-        },
-        {
-            "nombre": "Paper Rex", "tag": "PRX", "region": "APAC",
-            "estadisticas": {"PJ": 7, "PG": 2, "PP": 5, "PTS": 6}
-        },
-        {
-            "nombre": "DRX", "tag": "DRX", "region": "KR",
-            "estadisticas": {"PJ": 7, "PG": 4, "PP": 3, "PTS": 12}
-        },
-        {
-            "nombre": "KRÜ Esports", "tag": "KRU", "region": "LATAM",
-            "estadisticas": {"PJ": 7, "PG": 2, "PP": 5, "PTS": 6}
-        },
-        {
-            "nombre": "Team Liquid", "tag": "TL", "region": "EU",
-            "estadisticas": {"PJ": 7, "PG": 5, "PP": 2, "PTS": 15}
-        }
-    ]
+    EQUIPOS = cargar_datos(ARCH_EQUIPOS, [])
+    FIXTURE = cargar_datos(ARCH_PARTIDOS, [])
 
-    # Lista unificada de fixture e historial
-    # Formato: [jornada, idA, idB, puntosA, puntosB, jugado, mapa_id]
-    FIXTURE = [
-        # Jornada 1
-        [1, 0, 7, 13, 5, 1, 0],
-        [1, 1, 6, 13, 9, 1, 1],
-        [1, 2, 5, 7, 13, 1, 2],
-        [1, 3, 4, 13, 10, 1, 0],
-        
-        # Jornada 2
-        [2, 0, 6, 13, 2, 1, 1],
-        [2, 7, 5, 13, 6, 1, 2],
-        [2, 1, 4, 8, 13, 1, 0],
-        [2, 2, 3, 13, 11, 1, 1],
-        
-        # Jornada 3
-        [3, 0, 5, 13, 8, 1, 2],
-        [3, 6, 4, 13, 7, 1, 0],
-        [3, 7, 3, 13, 9, 1, 1],
-        [3, 1, 2, 13, 10, 1, 2],
-        
-        # Jornada 4
-        [4, 0, 4, 13, 11, 1, 0],
-        [4, 5, 3, 9, 13, 1, 1],
-        [4, 6, 2, 13, 5, 1, 2],
-        [4, 7, 1, 10, 13, 1, 0],
-        
-        # Jornada 5
-        [5, 0, 3, 13, 6, 1, 1],
-        [5, 4, 2, 13, 1, 1, 2],
-        [5, 5, 1, 13, 11, 1, 0],
-        [5, 6, 7, 8, 13, 1, 1],
-        
-        # Jornada 6
-        [6, 0, 2, 13, 4, 1, 2],
-        [6, 3, 1, 13, 10, 1, 0],
-        [6, 4, 7, 7, 13, 1, 1],
-        [6, 5, 6, 13, 11, 1, 2],
-        
-        # Jornada 7
-        [7, 0, 1, 13, 9, 1, 0],
-        [7, 2, 7, 5, 13, 1, 1],
-        [7, 3, 6, 13, 8, 1, 2],
-        [7, 4, 5, 10, 13, 1, 0]
-    ]
+    if EQUIPOS is None or FIXTURE is None:
+        print("No se puede iniciar el programa con archivos de datos dañados.")
+        return
+
 
     # PROGRAMA
     while not validar_suficientes_equipos(EQUIPOS, CANT_EQUIPOS):
@@ -112,6 +40,13 @@ def main():
 
     if len(FIXTURE) == 0:
         FIXTURE = generar_partidos(CANT_EQUIPOS, MAPAS)
+        guardar_datos(ARCH_PARTIDOS, FIXTURE)
+
+    elif (not validar_fixture(FIXTURE, CANT_EQUIPOS, len(MAPAS), REGLAS)
+          or not validar_estadisticas(EQUIPOS, FIXTURE, CANT_EQUIPOS)):
+        print("Los archivos de datos no son consistentes con la configuración. "
+              "Corríjalos o bórrelos para reiniciar el torneo.")
+        return
     
     valor = menu(INFO_TORNEO)
     

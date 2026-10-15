@@ -145,6 +145,33 @@ def validar_configuracion(config):
 
     return valida
 
+# ============================================================
+# CARGA DE REGISTROS
+# ============================================================
+
+def cargar_datos(nombre_archivo, valor_por_defecto):
+    """Lee un JSON. Si el archivo no existe (primera vez), devuelve
+    el valor por defecto. Si está dañado, avisa y devuelve None."""
+    try:
+        with open(nombre_archivo, "r", encoding="utf-8") as arch:
+            return json.load(arch)
+
+    except FileNotFoundError:
+        return valor_por_defecto
+
+    except json.JSONDecodeError:
+        print(f"Error: '{nombre_archivo}' está dañado o no es un JSON válido.")
+        return None
+
+
+def guardar_datos(nombre_archivo, datos):
+    """Escribe los datos en un archivo JSON."""
+    try:
+        with open(nombre_archivo, "w", encoding="utf-8") as arch:
+            json.dump(datos, arch, indent=4, ensure_ascii=False)
+
+    except OSError:
+        print(f"Error: no se pudo guardar '{nombre_archivo}'.")
 
 # ============================================================
 # VALIDACIONES
@@ -165,6 +192,42 @@ def validacion_de_rango(min, max, valor):
 
     except TypeError:
         print(f"ERROR. El valor ingresado no es numerico")
+
+
+def validar_estadisticas(equipos, fixture, cantidad_equipos):
+    """Recalcula PJ, PG, PP y PTS desde el fixture y los compara
+    con lo que dice equipos.json."""
+
+    if len(equipos) != cantidad_equipos:
+        print(f"Se esperaban {cantidad_equipos} equipos y hay {len(equipos)}.")
+        return False
+
+    esperado = []
+    for i in range(cantidad_equipos):
+        esperado.append({"PJ": 0, "PG": 0, "PP": 0, "PTS": 0})
+
+    for partido in fixture:
+        jornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
+
+        if jugado == 1:
+            if puntosA > puntosB:
+                ganador, perdedor = idA, idB
+            else:
+                ganador, perdedor = idB, idA
+
+            esperado[idA]["PJ"] += 1
+            esperado[idB]["PJ"] += 1
+            esperado[ganador]["PG"] += 1
+            esperado[ganador]["PTS"] += 3
+            esperado[perdedor]["PP"] += 1
+
+    for i in range(cantidad_equipos):
+        if equipos[i]["estadisticas"] != esperado[i]:
+            print(f"Las estadísticas de '{equipos[i]['nombre']}' no coinciden "
+                  f"con sus partidos jugados.")
+            return False
+
+    return True
 
 
 # ============================================================
@@ -313,6 +376,90 @@ def generar_partidos(cantidad_equipos, mapas):
         ids.insert(1, ids.pop())
 
     return partidos
+
+
+def validar_fixture(fixture, cantidad_equipos, cantidad_mapas, reglas):
+    """Revisa que un fixture cargado desde archivo sea usable."""
+
+    if not isinstance(fixture, list):
+        print("El fixture debe ser una lista de partidos.")
+        return False
+
+    total_jornadas = cantidad_equipos - 1
+    partidos_por_jornada = cantidad_equipos // 2
+
+    # Cantidad total esperada de partidos
+    if len(fixture) != total_jornadas * partidos_por_jornada:
+        print(f"El fixture debería tener {total_jornadas * partidos_por_jornada} "
+              f"partidos y tiene {len(fixture)}.")
+        return False
+
+    parejas_vistas = []
+    equipos_por_jornada = {}   # jornada -> ids que ya juegan en esa jornada
+
+    for partido in fixture:
+
+        # 1) Estructura: lista de 7 enteros
+        if not isinstance(partido, list) or len(partido) != 7:
+            print(f"Partido mal formado: {partido}")
+            return False
+
+        for valor in partido:
+            if not isinstance(valor, int) or isinstance(valor, bool):
+                print(f"El partido {partido} tiene un valor que no es entero.")
+                return False
+
+        jornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
+
+        # 2) Rangos
+        if jornada < 1 or jornada > total_jornadas:
+            print(f"Jornada inválida en {partido}.")
+            return False
+
+        if idA < 0 or idA >= cantidad_equipos or idB < 0 or idB >= cantidad_equipos:
+            print(f"Hay un id de equipo inexistente en {partido}.")
+            return False
+
+        if idA == idB:
+            print(f"Un equipo no puede jugar contra sí mismo: {partido}.")
+            return False
+
+        if mapa_id < 0 or mapa_id >= cantidad_mapas:
+            print(f"El mapa_id de {partido} no existe en la configuración.")
+            return False
+
+        # 3) Resultado coherente con el estado "jugado"
+        if jugado != 0 and jugado != 1:
+            print(f"'jugado' debe ser 0 o 1 en {partido}.")
+            return False
+
+        if jugado == 1:
+            if puntosA == puntosB or not validar_resultado(puntosA, puntosB, reglas):
+                print(f"Resultado inválido en {partido}.")
+                return False
+        elif puntosA != 0 or puntosB != 0:
+            print(f"Un partido no jugado debe tener 0-0: {partido}.")
+            return False
+
+        # 4) Cada pareja juega una sola vez
+        pareja = (min(idA, idB), max(idA, idB))
+        if pareja in parejas_vistas:
+            print(f"La pareja {pareja} aparece repetida.")
+            return False
+        parejas_vistas.append(pareja)
+
+        # 5) Un equipo no juega dos veces en la misma jornada
+        if jornada not in equipos_por_jornada:
+            equipos_por_jornada[jornada] = []
+
+        if idA in equipos_por_jornada[jornada] or idB in equipos_por_jornada[jornada]:
+            print(f"Un equipo juega dos veces en la jornada {jornada}.")
+            return False
+
+        equipos_por_jornada[jornada].append(idA)
+        equipos_por_jornada[jornada].append(idB)
+
+    return True
 
 
 # ============================================================
