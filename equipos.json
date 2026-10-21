@@ -1,0 +1,50 @@
+[
+    {
+        "nombre": "Sentinels",
+        "tag": "SEN",
+        "region": "NA",
+        "estadisticas": {"PJ": 3, "PG": 3, "PP": 0, "PTS": 9}
+    },
+    {
+        "nombre": "Loud",
+        "tag": "LOUD",
+        "region": "BR",
+        "estadisticas": {"PJ": 3, "PG": 2, "PP": 1, "PTS": 6}
+    },
+    {
+        "nombre": "Fnatic",
+        "tag": "FNC",
+        "region": "EU",
+        "estadisticas": {"PJ": 3, "PG": 1, "PP": 2, "PTS": 3}
+    },
+    {
+        "nombre": "NRG",
+        "tag": "NRG",
+        "region": "NA",
+        "estadisticas": {"PJ": 3, "PG": 1, "PP": 2, "PTS": 3}
+    },
+    {
+        "nombre": "Paper Rex",
+        "tag": "PRX",
+        "region": "APAC",
+        "estadisticas": {"PJ": 3, "PG": 1, "PP": 2, "PTS": 3}
+    },
+    {
+        "nombre": "DRX",
+        "tag": "DRX",
+        "region": "KR",
+        "estadisticas": {"PJ": 3, "PG": 1, "PP": 2, "PTS": 3}
+    },
+    {
+        "nombre": "KRÜ Esports",
+        "tag": "KRU",
+        "region": "LATAM",
+        "estadisticas": {"PJ": 3, "PG": 1, "PP": 2, "PTS": 3}
+    },
+    {
+        "nombre": "Team Liquid",
+        "tag": "TL",
+        "region": "EU",
+        "estadisticas": {"PJ": 3, "PG": 2, "PP": 1, "PTS": 6}
+    }
+]
