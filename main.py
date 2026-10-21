@@ -35,12 +35,12 @@ def main():
     while not validar_suficientes_equipos(EQUIPOS, CANT_EQUIPOS):
         print(f"Cantidad actual de equipos {len(EQUIPOS)} / {CANT_EQUIPOS}")
         registrar_equipo(EQUIPOS, REGIONES_VALIDAS)
-
+    guardar_datos(ARCH_EQUIPOS, EQUIPOS)
     print("Se ha completado el registro de equipos")
 
     if len(FIXTURE) == 0:
         FIXTURE = generar_partidos(CANT_EQUIPOS, MAPAS)
-        guardar_datos(ARCH_PARTIDOS, FIXTURE)
+        guardar_fixture(ARCH_PARTIDOS, FIXTURE)
 
     elif (not validar_fixture(FIXTURE, CANT_EQUIPOS, len(MAPAS), REGLAS)
           or not validar_estadisticas(EQUIPOS, FIXTURE, CANT_EQUIPOS)):
@@ -67,6 +67,8 @@ def main():
         if valor == 4:
             if jornada != 0:
                 registrar_resultados(jornada, FIXTURE, EQUIPOS, REGLAS)
+                guardar_fixture(ARCH_PARTIDOS, FIXTURE)
+                guardar_datos(ARCH_EQUIPOS, EQUIPOS)
             else:
                 print("El torneo ya terminó, no quedan partidos a los que cargarle resultados.")
 

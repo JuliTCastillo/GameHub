@@ -173,6 +173,28 @@ def guardar_datos(nombre_archivo, datos):
     except OSError:
         print(f"Error: no se pudo guardar '{nombre_archivo}'.")
 
+
+def guardar_fixture(nombre_archivo, fixture):
+    """Guarda el fixture con un partido por línea."""
+    try:
+        with open(nombre_archivo, "w", encoding="utf-8") as arch:
+            arch.write("[\n")
+
+            for i in range(len(fixture)):
+                linea = "    " + json.dumps(fixture[i])
+
+                # Todas las líneas llevan coma menos la última,
+                # si no el JSON queda inválido
+                if i < len(fixture) - 1:
+                    linea += ","
+
+                arch.write(linea + "\n")
+
+            arch.write("]")
+
+    except OSError:
+        print(f"Error: no se pudo guardar '{nombre_archivo}'.")
+
 # ============================================================
 # VALIDACIONES
 # ============================================================
