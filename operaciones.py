@@ -1,4 +1,4 @@
-    #Validaciones
+#Validaciones
 def validacion_de_rango(min, max, valor):
     try:
         while valor < min or valor > max:
