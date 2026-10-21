@@ -2,33 +2,38 @@ import re
 import random
 import json
 
+
 def normalizar_string(string):
+    """Convierte un texto a mayúsculas y elimina todos los espacios."""
     return re.sub(r"\s+", "", string.upper())
+
 
 # ============================================================
 # LOGIN
 # ============================================================
 
 def cargar_usuario(nombre_archivo):
+    """Lee usuario y contraseña desde la primera línea de un archivo CSV."""
     with open(nombre_archivo, "r", encoding="utf-8") as arch:
         usuario_correcto, contrasena_correcta = arch.readline().strip().split(",")
     return usuario_correcto, contrasena_correcta
 
+
 def login_valido(nombre_archivo):
+    """Solicita credenciales por consola y valida que coincidan con el archivo."""
     usuario = input("Ingrese el usario: ").strip()
     contrasena = input("Ingrese la contraseña: ").strip()
     usuario_correcto, contrasena_correcta = cargar_usuario(nombre_archivo)
     return usuario_correcto == usuario and contrasena_correcta == contrasena
+
 
 # ============================================================
 # CONFIGURACION DE TORNEO
 # ============================================================
 
 def cargar_configuracion(nombre_archivo):
-    """Lee un archivo JSON y devuelve su contenido como diccionario.
-    Si algo falla, avisa y devuelve None."""
+    """Carga la configuración desde un archivo JSON o devuelve None si falla."""
     try:
-        # "with" abre el archivo y lo cierra solo al terminar el bloque
         with open(nombre_archivo, "r", encoding="utf-8") as archivo:
             config = json.load(archivo)
 
@@ -44,16 +49,14 @@ def cargar_configuracion(nombre_archivo):
 
 
 def validar_configuracion(config):
-    """Chequea que la configuración tenga todo lo necesario."""
-
-    # 0) Que el JSON sea un diccionario (podría ser una lista, por ejemplo)
+    """Verifica la estructura, tipos de datos y reglas de la configuración."""
     if not isinstance(config, dict):
         print("La configuración debe ser un objeto JSON { ... }.")
         return False
 
     valida = True
 
-    # 1) Que existan las secciones principales
+    # 1) Secciones principales obligatorias
     secciones = ("torneo", "reglas", "regiones_validas", "mapas")
     for seccion in secciones:
         if seccion not in config:
@@ -63,7 +66,7 @@ def validar_configuracion(config):
     if not valida:
         return valida
 
-    # 2) Que torneo y reglas sean diccionarios y tengan todas sus claves
+    # 2) Claves requeridas dentro de 'torneo' y 'reglas'
     claves_requeridas = {
         "torneo": ("nombre", "juego", "cantidad_equipos"),
         "reglas": ("puntos_para_ganar", "diferencia_minima", "permite_overtime"),
@@ -85,8 +88,7 @@ def validar_configuracion(config):
     torneo = config["torneo"]
     reglas = config["reglas"]
 
-    # 3) Tipos de los valores
-    # (bool es un subtipo de int en Python, por eso se excluye aparte)
+    # 3) Tipos de datos de los valores
     cantidad = torneo["cantidad_equipos"]
     puntos = reglas["puntos_para_ganar"]
     dif = reglas["diferencia_minima"]
@@ -115,11 +117,10 @@ def validar_configuracion(config):
         print("'juego' debe ser un texto no vacío.")
         valida = False
 
-    # Si los tipos están mal, comparar números podría fallar
     if not valida:
         return valida
 
-    # 4) Rangos y coherencia de los números
+    # 4) Rangos y coherencia numérica
     if cantidad < 2:
         print("Tiene que haber al menos 2 equipos.")
         valida = False
@@ -140,12 +141,12 @@ def validar_configuracion(config):
         print("La diferencia mínima no puede ser mayor a los puntos para ganar.")
         valida = False
 
-    # 5) Mapas: lista no vacía
+    # 5) Lista de mapas no vacía
     if not isinstance(config["mapas"], list) or len(config["mapas"]) == 0:
         print("'mapas' debe ser una lista con al menos un mapa.")
         valida = False
 
-    # 6) Regiones: lista no vacía, y cada una ya normalizada
+    # 6) Lista de regiones no vacía y normalizada
     regiones = config["regiones_validas"]
 
     if not isinstance(regiones, list) or len(regiones) == 0:
@@ -159,13 +160,13 @@ def validar_configuracion(config):
 
     return valida
 
+
 # ============================================================
 # CARGA DE REGISTROS
 # ============================================================
 
 def cargar_datos(nombre_archivo, valor_por_defecto):
-    """Lee un JSON. Si el archivo no existe (primera vez), devuelve
-    el valor por defecto. Si está dañado, avisa y devuelve None."""
+    """Lee un archivo JSON; devuelve valor_por_defecto si no existe o None si está dañado."""
     try:
         with open(nombre_archivo, "r", encoding="utf-8") as arch:
             return json.load(arch)
@@ -179,7 +180,7 @@ def cargar_datos(nombre_archivo, valor_por_defecto):
 
 
 def guardar_datos(nombre_archivo, datos):
-    """Escribe los datos en un archivo JSON."""
+    """Guarda una estructura de datos en un archivo JSON."""
     try:
         with open(nombre_archivo, "w", encoding="utf-8") as arch:
             json.dump(datos, arch, indent=4, ensure_ascii=False)
@@ -189,7 +190,7 @@ def guardar_datos(nombre_archivo, datos):
 
 
 def guardar_fixture(nombre_archivo, fixture):
-    """Guarda el fixture con un partido por línea."""
+    """Guarda el fixture en un archivo JSON escribiendo un partido por línea."""
     try:
         with open(nombre_archivo, "w", encoding="utf-8") as arch:
             arch.write("[\n")
@@ -197,8 +198,6 @@ def guardar_fixture(nombre_archivo, fixture):
             for i in range(len(fixture)):
                 linea = "    " + json.dumps(fixture[i])
 
-                # Todas las líneas llevan coma menos la última,
-                # si no el JSON queda inválido
                 if i < len(fixture) - 1:
                     linea += ","
 
@@ -209,16 +208,19 @@ def guardar_fixture(nombre_archivo, fixture):
     except OSError:
         print(f"Error: no se pudo guardar '{nombre_archivo}'.")
 
+
 # ============================================================
 # VALIDACIONES
 # ============================================================
 
 def es_numerico(valor):
+    """Convierte una cadena de dígitos a entero; devuelve None si no es numérica."""
     if valor.isdigit():
         return int(valor)
 
 
 def validacion_de_rango(min, max, valor):
+    """Verifica que un valor esté entre min y max, solicitándolo de nuevo si no cumple."""
     try:
         while valor < min or valor > max:
             print(f"Error. Ingrese un valor entre {min} a {max}")
@@ -231,9 +233,7 @@ def validacion_de_rango(min, max, valor):
 
 
 def validar_estadisticas(equipos, fixture, cantidad_equipos):
-    """Recalcula PJ, PG, PP y PTS desde el fixture y los compara
-    con lo que dice equipos.json."""
-
+    """Recalcula PJ, PG, PP y PTS desde el fixture y verifica que coincidan con equipos."""
     if len(equipos) != cantidad_equipos:
         print(f"Se esperaban {cantidad_equipos} equipos y hay {len(equipos)}.")
         return False
@@ -271,6 +271,7 @@ def validar_estadisticas(equipos, fixture, cantidad_equipos):
 # ============================================================
 
 def validar_suficientes_equipos(equipos, cantidad):
+    """Verifica si se alcanzó la cantidad mínima de equipos requerida."""
     valido = True
 
     if len(equipos) < cantidad:
@@ -280,9 +281,10 @@ def validar_suficientes_equipos(equipos, cantidad):
 
 
 def validar_registro_equipo(equipos, nombre, tag, region, regionesValidas):
+    """Valida formato, unicidad de nombre/tag y región permitida para un nuevo equipo."""
     valido = True
 
-    # Validar nombre
+    # Nombre no vacío, sin espacios dobles ni repetido
     if nombre == "":
         print("El nombre del equipo no puede estar vacío.")
         valido = False
@@ -298,7 +300,7 @@ def validar_registro_equipo(equipos, nombre, tag, region, regionesValidas):
             print("El nombre de equipo ya está registrado.")
             valido = False
 
-    # Validar tag
+    # Tag no vacío ni repetido
     if tag == "":
         print("El tag no puede estar vacío.")
         valido = False
@@ -310,7 +312,7 @@ def validar_registro_equipo(equipos, nombre, tag, region, regionesValidas):
             print("El tag ya está registrado por otro equipo.")
             valido = False
 
-    # Validar región
+    # Región no vacía y dentro de las habilitadas
     if region == "":
         print("La región no puede estar vacía.")
         valido = False
@@ -327,6 +329,7 @@ def validar_registro_equipo(equipos, nombre, tag, region, regionesValidas):
 
 
 def registrar(equipos, nombre, tag, region):
+    """Agrega un equipo con estadísticas en cero a la lista y devuelve su ID."""
     idNuevo = len(equipos)
 
     equipoNuevo = {
@@ -346,6 +349,7 @@ def registrar(equipos, nombre, tag, region):
 
 
 def registrar_equipo(equipos, regionesValidas):
+    """Solicita los datos de un equipo por consola y lo registra si es válido."""
     print("\n--- Registrar equipo ---")
 
     nombre = input("Nombre del equipo: ").strip()
@@ -387,36 +391,31 @@ def registrar_equipo(equipos, regionesValidas):
 # ============================================================
 
 def generar_partidos(cantidad_equipos, mapas):
+    """Genera el fixture todos contra todos (Round-Robin) con mapas aleatorios."""
     partidos = []
     ids = list(range(cantidad_equipos))
-    
-    # En un formato todos contra todos, la cantidad de jornadas es N - 1
+
     total_jornadas = cantidad_equipos - 1
     partidos_por_jornada = cantidad_equipos // 2
 
     for jornada in range(1, total_jornadas + 1):
         for i in range(partidos_por_jornada):
             idA = ids[i]
-            # Emparejamos el primero con el último, el segundo con el penúltimo, etc.
             idB = ids[(cantidad_equipos - 1) - i]
-            
-            # Sorteamos el índice del mapa
             mapa_id = random.randint(0, len(mapas) - 1)
-            
-            # Estructura: [jornada, idA, idB, puntosA, puntosB, jugado, mapa_id]
+
+            # Formato: [jornada, idA, idB, puntosA, puntosB, jugado, mapa_id]
             partido = [jornada, idA, idB, 0, 0, 0, mapa_id]
             partidos.append(partido)
 
-        # Rotación del algoritmo Round-Robin: 
-        # El equipo en el índice 0 queda fijo, el último pasa a la posición 1.
+        # Rotación Round-Robin dejando fijo el primer elemento
         ids.insert(1, ids.pop())
 
     return partidos
 
 
 def validar_fixture(fixture, cantidad_equipos, cantidad_mapas, reglas):
-    """Revisa que un fixture cargado desde archivo sea usable."""
-
+    """Verifica la estructura, rangos, resultados y cruces únicos del fixture."""
     if not isinstance(fixture, list):
         print("El fixture debe ser una lista de partidos.")
         return False
@@ -424,18 +423,17 @@ def validar_fixture(fixture, cantidad_equipos, cantidad_mapas, reglas):
     total_jornadas = cantidad_equipos - 1
     partidos_por_jornada = cantidad_equipos // 2
 
-    # Cantidad total esperada de partidos
     if len(fixture) != total_jornadas * partidos_por_jornada:
         print(f"El fixture debería tener {total_jornadas * partidos_por_jornada} "
               f"partidos y tiene {len(fixture)}.")
         return False
 
     parejas_vistas = []
-    equipos_por_jornada = {}   # jornada -> ids que ya juegan en esa jornada
+    equipos_por_jornada = {}
 
     for partido in fixture:
 
-        # 1) Estructura: lista de 7 enteros
+        # 1) Estructura de 7 enteros
         if not isinstance(partido, list) or len(partido) != 7:
             print(f"Partido mal formado: {partido}")
             return False
@@ -447,7 +445,7 @@ def validar_fixture(fixture, cantidad_equipos, cantidad_mapas, reglas):
 
         jornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
 
-        # 2) Rangos
+        # 2) Rangos válidos de jornada, equipos y mapa
         if jornada < 1 or jornada > total_jornadas:
             print(f"Jornada inválida en {partido}.")
             return False
@@ -464,7 +462,7 @@ def validar_fixture(fixture, cantidad_equipos, cantidad_mapas, reglas):
             print(f"El mapa_id de {partido} no existe en la configuración.")
             return False
 
-        # 3) Resultado coherente con el estado "jugado"
+        # 3) Coherencia entre estado 'jugado' y marcador
         if jugado != 0 and jugado != 1:
             print(f"'jugado' debe ser 0 o 1 en {partido}.")
             return False
@@ -477,14 +475,14 @@ def validar_fixture(fixture, cantidad_equipos, cantidad_mapas, reglas):
             print(f"Un partido no jugado debe tener 0-0: {partido}.")
             return False
 
-        # 4) Cada pareja juega una sola vez
+        # 4) Sin enfrentamientos repetidos en el torneo
         pareja = (min(idA, idB), max(idA, idB))
         if pareja in parejas_vistas:
             print(f"La pareja {pareja} aparece repetida.")
             return False
         parejas_vistas.append(pareja)
 
-        # 5) Un equipo no juega dos veces en la misma jornada
+        # 5) Sin equipos repetidos en una misma jornada
         if jornada not in equipos_por_jornada:
             equipos_por_jornada[jornada] = []
 
@@ -503,6 +501,7 @@ def validar_fixture(fixture, cantidad_equipos, cantidad_mapas, reglas):
 # ============================================================
 
 def listar_equipos(equipos):
+    """Devuelve un texto con el listado numerado de todos los equipos."""
     lineas = []
 
     for i in range(len(equipos)):
@@ -519,6 +518,7 @@ def listar_equipos(equipos):
 
 
 def buscar_equipo(equipos, busqueda):
+    """Busca un equipo por ID o tag y devuelve su índice, o -1 si no existe."""
     idEncontrado = -1
 
     idBuscado = es_numerico(busqueda)
@@ -538,8 +538,9 @@ def buscar_equipo(equipos, busqueda):
 
 
 def buscar_y_mostrar_equipo(equipos):
+    """Solicita un ID o tag por consola y muestra las estadísticas del equipo."""
     busqueda = input("Ingrese ID o tag del equipo a buscar: ").strip()
-    
+
     idEquipo = buscar_equipo(equipos, busqueda)
 
     if idEquipo == -1:
@@ -549,6 +550,7 @@ def buscar_y_mostrar_equipo(equipos):
 
 
 def mostrar_equipo(equipos, idEquipo):
+    """Formatea los datos, estadísticas y porcentaje de victorias de un equipo."""
     estadisticas = equipos[idEquipo]["estadisticas"]
     pj = estadisticas["PJ"]
     pg = estadisticas["PG"]
@@ -576,6 +578,7 @@ def mostrar_equipo(equipos, idEquipo):
 # ============================================================
 
 def validar_resultado(puntosA, puntosB, reglas):
+    """Verifica que el marcador cumpla los puntos para ganar, diferencia mínima y overtime."""
     puntos_para_ganar = reglas["puntos_para_ganar"]
     dif_min = reglas["diferencia_minima"]
     overtime = reglas["permite_overtime"]
@@ -584,21 +587,20 @@ def validar_resultado(puntosA, puntosB, reglas):
     min_p = min(puntosA, puntosB)
     puntaje_valido = True
 
-    # Regla 1: alguien tiene que llegar al objetivo sí o sí
+    # Puntaje mínimo para ganar
     if max_p < puntos_para_ganar:
         print(f"Error: un equipo debe alcanzar al menos {puntos_para_ganar} "
               f"para ganar.")
         puntaje_valido = False
 
-    # Regla 2: si el ganador llegó justo al objetivo, el perdedor debe quedar
-    # a la diferencia mínima o más lejos
+    # Diferencia mínima en tiempo regular
     if max_p == puntos_para_ganar:
         if min_p > puntos_para_ganar - dif_min:
             print(f"Error: con {puntos_para_ganar} puntos, el rival puede tener "
                   f"como máximo {puntos_para_ganar - dif_min}.")
             puntaje_valido = False
 
-    # Regla 3: pasar el objetivo solo se permite si hay overtime
+    # Validación de overtime
     if max_p > puntos_para_ganar:
         if not overtime:
             print(f"Error: este juego no tiene overtime, "
@@ -613,6 +615,7 @@ def validar_resultado(puntosA, puntosB, reglas):
 
 
 def jornada_actual(fixture):
+    """Devuelve el número de la primera jornada con partidos pendientes, o 0 si terminó."""
     for partido in fixture:
         nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
         if jugado == 0:
@@ -621,6 +624,7 @@ def jornada_actual(fixture):
 
 
 def partidos_pendientes(fixture, jornada):
+    """Devuelve la lista de partidos no jugados correspondientes a la jornada indicada."""
     pendientes = []
     for partido in fixture:
         nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
@@ -630,6 +634,7 @@ def partidos_pendientes(fixture, jornada):
 
 
 def listar_partidos_pendientes(jornada, fixture, equipos):
+    """Muestra por consola los enfrentamientos pendientes de la jornada actual."""
     print(
         f"Actualmente se está jugando la jornada N° {jornada}"
     )
@@ -638,7 +643,7 @@ def listar_partidos_pendientes(jornada, fixture, equipos):
 
     for partido in partidos_pendientes(fixture, jornada):
         nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
-    
+
         print(
             f"{equipos[idA]['nombre']} vs "
             f"{equipos[idB]['nombre']}"
@@ -646,6 +651,7 @@ def listar_partidos_pendientes(jornada, fixture, equipos):
 
 
 def pedir_puntaje(mensaje):
+    """Solicita por consola un número entero hasta recibir un valor válido."""
     puntaje = es_numerico(input(mensaje))
 
     while puntaje is None:
@@ -656,6 +662,7 @@ def pedir_puntaje(mensaje):
 
 
 def registrar_resultados(jornada, fixture, equipos, reglas):
+    """Carga el resultado del próximo partido pendiente y actualiza las estadísticas."""
     pendientes = partidos_pendientes(fixture, jornada)
     partido_actual = pendientes[0]
     nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido_actual
@@ -674,10 +681,10 @@ def registrar_resultados(jornada, fixture, equipos, reglas):
 
             if ganadasA == ganadasB:
                 print("Error. No se permiten empates.")
-            
+
             elif not validar_resultado(ganadasA, ganadasB, reglas):
                 print("Por favor, ingrese los puntajes nuevamente.")
-                
+
             else:
                 break
 
@@ -689,6 +696,7 @@ def registrar_resultados(jornada, fixture, equipos, reglas):
 
 
 def actualizar_estadisticas(equipos, idA, idB, ganadasA, ganadasB):
+    """Actualiza PJ, PG, PP y PTS de ambos equipos según el ganador del partido."""
     equipos[idA]["estadisticas"]["PJ"] += 1
     equipos[idB]["estadisticas"]["PJ"] += 1
 
@@ -710,12 +718,13 @@ def actualizar_estadisticas(equipos, idA, idB, ganadasA, ganadasB):
 # ============================================================
 
 def consultar_historial(fixture, equipos, mapas):
+    """Devuelve el listado formateado de todos los partidos disputados."""
     lineas = []
 
     for partido in fixture:
         nJornada, idA, idB, puntosA, puntosB, jugado, mapa_id = partido
         if jugado == 1:
-        
+
             equipoA = equipos[idA]["nombre"]
             equipoB = equipos[idB]["nombre"]
 
@@ -736,6 +745,7 @@ def consultar_historial(fixture, equipos, mapas):
 # ============================================================
 
 def generar_ranking(equipos):
+    """Devuelve los IDs de los equipos ordenados de mayor a menor por PTS y PG."""
     indices = list(range(len(equipos)))
 
     ranking = sorted(
@@ -751,6 +761,7 @@ def generar_ranking(equipos):
 
 
 def tabla_de_posiciones(equipos):
+    """Genera la tabla de posiciones completa formateada en columnas."""
     ranking = generar_ranking(equipos)
 
     encabezado = (
@@ -790,7 +801,7 @@ def tabla_de_posiciones(equipos):
 # ============================================================
 
 def detectar_lideres(equipos):
-    """Ids de los equipos con el máximo de puntos (sin desempate)."""
+    """Devuelve los IDs de los equipos que comparten el puntaje máximo."""
     max_puntos = max(e["estadisticas"]["PTS"] for e in equipos)
 
     lideres = [
@@ -803,11 +814,12 @@ def detectar_lideres(equipos):
 
 
 def top_3(equipos):
+    """Devuelve los IDs de los primeros 3 equipos del ranking."""
     return generar_ranking(equipos)[:3]
 
 
 def racha_maxima(partidos, cantidad_equipos):
-    """Racha más larga de victorias seguidas. Devuelve (ids, valor)."""
+    """Calcula la mayor racha de victorias seguidas y devuelve (ids_equipos, valor)."""
     racha_actual = [0] * cantidad_equipos
     racha_max = [0] * cantidad_equipos
 
@@ -838,7 +850,7 @@ def racha_maxima(partidos, cantidad_equipos):
 
 
 def equipos_invictos(equipos):
-    """Nombres de los equipos con PJ > 0 y PP == 0."""
+    """Devuelve los nombres de los equipos con PJ > 0 y PP == 0."""
     return [
         equipos[i]["nombre"]
         for i in range(len(equipos))
@@ -848,6 +860,7 @@ def equipos_invictos(equipos):
 
 
 def resumen_general(equipos, partidos):
+    """Genera un resumen con total de equipos, partidos jugados, promedio de rondas y líderes."""
     partidos_jugados = 0
     total_rounds = 0
 
@@ -873,11 +886,13 @@ def resumen_general(equipos, partidos):
 
 
 def informe_lideres(equipos):
+    """Devuelve el texto del informe con los líderes actuales del torneo."""
     nombres = [equipos[i]["nombre"] for i in detectar_lideres(equipos)]
     return f"Líder(es) del torneo (máximo puntaje): {', '.join(nombres)}"
 
 
 def informe_top3(equipos):
+    """Devuelve el texto del informe con el Top 3 del torneo."""
     lineas = ["Top 3:"]
 
     for pos, i in enumerate(top_3(equipos), start=1):
@@ -890,6 +905,7 @@ def informe_top3(equipos):
 
 
 def informe_racha(equipos, partidos):
+    """Devuelve el texto del informe con la racha de victorias más larga."""
     ids, valor = racha_maxima(partidos, len(equipos))
 
     if valor == 0:
@@ -904,6 +920,7 @@ def informe_racha(equipos, partidos):
 
 
 def informe_invictos(equipos):
+    """Devuelve el texto del informe con los equipos invictos."""
     invictos = equipos_invictos(equipos)
 
     if not invictos:
@@ -913,6 +930,7 @@ def informe_invictos(equipos):
 
 
 def menu_informes():
+    """Muestra el submenú de informes y devuelve la opción válida elegida."""
     print("""
 --- Informes ---
 1. Líder(es) del torneo
@@ -935,7 +953,7 @@ def menu_informes():
 # ============================================================
 
 def menu(info):
-
+    """Muestra el menú principal del torneo y devuelve la opción válida elegida."""
     print(f"""
 ----> {info[0]} - {info[1]} <----
 1. Listar equipos

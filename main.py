@@ -38,7 +38,6 @@ def main():
     REGLAS = CONFIG["reglas"]
 
     # REGISTROS
-    # En caso de que los equipos sean definidios previamente el programa no los reescribira, en cambio si estan vacios si
     ARCH_EQUIPOS = "GameHub/equipos.json"
     ARCH_PARTIDOS = "GameHub/partidos.json"
 
