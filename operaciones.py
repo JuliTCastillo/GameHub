@@ -5,6 +5,20 @@ import json
 def normalizar_string(string):
     return re.sub(r"\s+", "", string.upper())
 
+# ============================================================
+# LOGIN
+# ============================================================
+
+def cargar_usuario(nombre_archivo):
+    with open(nombre_archivo, "r", encoding="utf-8") as arch:
+        usuario_correcto, contrasena_correcta = arch.readline().strip().split(",")
+    return usuario_correcto, contrasena_correcta
+
+def login_valido(nombre_archivo):
+    usuario = input("Ingrese el usario: ").strip()
+    contrasena = input("Ingrese la contraseña: ").strip()
+    usuario_correcto, contrasena_correcta = cargar_usuario(nombre_archivo)
+    return usuario_correcto == usuario and contrasena_correcta == contrasena
 
 # ============================================================
 # CONFIGURACION DE TORNEO

@@ -1,6 +1,25 @@
 from operaciones import *
 
 def main():
+    # LOGIN
+    acceso = False
+    intentos = 0
+
+    while not acceso and intentos < 3:
+        if login_valido("GameHub/info_usuarios.csv"):
+            acceso = True
+        else:
+            print("Usuario o contraseña incorrectos. Verificá los datos ingresados e intentá nuevamente.")
+            print()
+            intentos += 1
+
+    if not acceso:
+        print("Demasiados intentos fallidos. Saliendo..")
+        print()
+        return
+
+    print("Inicio de sesión exitoso.")
+    print()
 
     # CONFIGURACION
     CONFIG = cargar_configuracion("GameHub/config_torneo.json")
