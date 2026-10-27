@@ -1,15 +1,19 @@
+import os
 from operaciones import *
 
 
 def main():
     # RUTAS
-    # Los archivos se buscan en la misma carpeta donde se ejecuta el programa
-    # (la carpeta del proyecto), sin depender de que se llame GameHub o GameHub-main.
-    ARCH_USUARIOS = "info_usuarios.csv"
-    ARCH_CONFIG = "config_torneo.json"
-    ARCH_EQUIPOS = "equipos.json"
-    ARCH_PARTIDOS = "partidos.json"
-    ARCH_REPORTES = "reportes.txt"
+    # Se arman a partir de la carpeta donde está main.py (os.path, autorizado por la profe),
+    # así el programa encuentra sus archivos aunque se ejecute desde otra carpeta
+    # y sin importar si la carpeta se llama GameHub, GameHub-main, etc.
+    CARPETA = os.path.dirname(os.path.abspath(__file__))
+
+    ARCH_USUARIOS = os.path.join(CARPETA, "info_usuarios.csv")
+    ARCH_CONFIG = os.path.join(CARPETA, "config_torneo.json")
+    ARCH_EQUIPOS = os.path.join(CARPETA, "equipos.json")
+    ARCH_PARTIDOS = os.path.join(CARPETA, "partidos.json")
+    ARCH_REPORTES = os.path.join(CARPETA, "reportes.txt")
 
     # LOGIN
     USUARIOS = cargar_usuarios(ARCH_USUARIOS)
