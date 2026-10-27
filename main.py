@@ -1,18 +1,15 @@
-import os
 from operaciones import *
 
 
 def main():
     # RUTAS
-    # Se arman a partir de la carpeta donde está este archivo, así el programa
-    # funciona igual sin importar desde qué carpeta se ejecute (GameHub, GameHub-main, etc.).
-    CARPETA = os.path.dirname(os.path.abspath(__file__))
-
-    ARCH_USUARIOS = os.path.join(CARPETA, "info_usuarios.csv")
-    ARCH_CONFIG = os.path.join(CARPETA, "config_torneo.json")
-    ARCH_EQUIPOS = os.path.join(CARPETA, "equipos.json")
-    ARCH_PARTIDOS = os.path.join(CARPETA, "partidos.json")
-    ARCH_REPORTES = os.path.join(CARPETA, "reportes.txt")
+    # Los archivos se buscan en la misma carpeta donde se ejecuta el programa
+    # (la carpeta del proyecto), sin depender de que se llame GameHub o GameHub-main.
+    ARCH_USUARIOS = "info_usuarios.csv"
+    ARCH_CONFIG = "config_torneo.json"
+    ARCH_EQUIPOS = "equipos.json"
+    ARCH_PARTIDOS = "partidos.json"
+    ARCH_REPORTES = "reportes.txt"
 
     # LOGIN
     USUARIOS = cargar_usuarios(ARCH_USUARIOS)
@@ -166,7 +163,4 @@ def main():
     print("Saliendo..")
 
 
-try:
-    main()
-except (KeyboardInterrupt, EOFError):
-    print("\nPrograma interrumpido por el usuario. Saliendo..")
+main()

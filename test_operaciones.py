@@ -1,5 +1,3 @@
-import pytest
-
 from operaciones import (
     normalizar_string,
     validar_resultado,
@@ -181,30 +179,30 @@ def test_formato_nombre_regex():
     assert validar_formato_nombre("Un nombre demasiado largo") == False
 
 
-# 11. Validación incorrecta que genera una excepción: línea de usuario mal formada
-def test_linea_usuario_invalida_lanza_excepcion():
-    with pytest.raises(ValueError):
-        parsear_linea_usuario("adminsinclave")       # falta la coma
+# 11. Validación incorrecta que genera una excepción: línea de usuario sin coma
+def test_linea_usuario_invalida_genera_excepcion():
+    try:
+        parsear_linea_usuario("adminsinclave")
+        genero_excepcion = False
+    except ValueError:
+        genero_excepcion = True
 
-    with pytest.raises(ValueError):
-        parsear_linea_usuario("ad min,1234")         # usuario con formato inválido
+    assert genero_excepcion == True
 
-    with pytest.raises(ValueError):
-        parsear_linea_usuario("admin,")              # sin contraseña
-
+    # Con el formato correcto no hay excepción y se obtiene la tupla
     assert parsear_linea_usuario("admin,1234\n") == ("admin", "1234")
 
 
 # 12. Lectura del archivo de usuarios: archivo inexistente y líneas mal formadas
-def test_cargar_usuarios(tmp_path):
+def test_cargar_usuarios():
     # Archivo inexistente: no corta el programa, devuelve None
-    assert cargar_usuarios(tmp_path / "no_existe.csv") is None
+    assert cargar_usuarios("archivo_que_no_existe.csv") is None
 
-    # Archivo con una línea rota: se saltea y se cargan las válidas
-    archivo = tmp_path / "usuarios.csv"
-    archivo.write_text("admin,1234\nlinea_rota\njuli,abcd\n", encoding="utf-8")
+    # Archivo con líneas rotas: se saltean y se cargan las válidas
+    with open("usuarios_prueba.csv", "w", encoding="utf-8") as arch:
+        arch.write("admin,1234\nlinea_rota\nad min,1234\njuli,abcd\n")
 
-    assert cargar_usuarios(archivo) == [("admin", "1234"), ("juli", "abcd")]
+    assert cargar_usuarios("usuarios_prueba.csv") == [("admin", "1234"), ("juli", "abcd")]
 
 
 # 13. Diccionario acumulador: indicadores agrupados por región
@@ -243,11 +241,11 @@ def test_filtro_por_region_y_alertas():
 
 
 # 15. Generación del archivo de texto con el reporte
-def test_guardar_reporte(tmp_path):
-    archivo = tmp_path / "reportes.txt"
+def test_guardar_reporte():
+    assert guardar_reporte("reporte_prueba.txt", "REPORTE DE PRUEBA", "Contenido del reporte") == True
 
-    assert guardar_reporte(archivo, "REPORTE DE PRUEBA", "Contenido del reporte") == True
+    with open("reporte_prueba.txt", "r", encoding="utf-8") as arch:
+        contenido = arch.read()
 
-    contenido = archivo.read_text(encoding="utf-8")
     assert "REPORTE DE PRUEBA" in contenido
     assert "Contenido del reporte" in contenido

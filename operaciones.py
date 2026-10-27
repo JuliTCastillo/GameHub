@@ -8,17 +8,17 @@ import json
 # ============================================================
 
 # Tag: entre 2 y 5 caracteres, solo letras A-Z (sin tilde) o números. Ej: SEN, LOUD, T1
-PATRON_TAG = r"[A-Z0-9]{2,5}"
+PATRON_TAG = r"^[A-Z0-9]{2,5}$"
 
 # Nombre de equipo: entre 2 y 20 caracteres. Empieza con letra o número y
-# después admite letras (incluidas las tildes y la Ü), números, espacios, puntos y guiones.
-PATRON_NOMBRE = r"\w[\w .-]{1,19}"
+# después admite letras (incluidas tildes, Ñ y Ü), números, espacios, puntos y guiones.
+PATRON_NOMBRE = r"^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ][A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ .-]{1,19}$"
 
 # Usuario del login: entre 3 y 20 caracteres, letras, números o guion bajo.
-PATRON_USUARIO = r"[A-Za-z0-9_]{3,20}"
+PATRON_USUARIO = r"^[A-Za-z0-9_]{3,20}$"
 
 # Número entero no negativo (solo dígitos).
-PATRON_NUMERO = r"\d+"
+PATRON_NUMERO = r"^[0-9]+$"
 
 
 def normalizar_string(string):
@@ -28,17 +28,17 @@ def normalizar_string(string):
 
 def validar_formato_tag(tag):
     """Valida con regex que el tag tenga de 2 a 5 caracteres A-Z o 0-9."""
-    return re.fullmatch(PATRON_TAG, tag) is not None
+    return re.match(PATRON_TAG, tag) is not None
 
 
 def validar_formato_nombre(nombre):
     """Valida con regex que el nombre tenga de 2 a 20 caracteres permitidos."""
-    return re.fullmatch(PATRON_NOMBRE, nombre) is not None
+    return re.match(PATRON_NOMBRE, nombre) is not None
 
 
 def validar_formato_usuario(usuario):
     """Valida con regex que el usuario tenga de 3 a 20 letras, números o guion bajo."""
-    return re.fullmatch(PATRON_USUARIO, usuario) is not None
+    return re.match(PATRON_USUARIO, usuario) is not None
 
 
 # ============================================================
@@ -47,24 +47,11 @@ def validar_formato_usuario(usuario):
 
 def parsear_linea_usuario(linea):
     """
-    Separa una línea 'usuario,contraseña' del CSV.
-    Lanza ValueError si la línea no tiene el formato correcto.
+    Separa una línea 'usuario,contraseña' del CSV y devuelve la tupla (usuario, contraseña).
+    Si la línea no tiene exactamente una coma, el desempaquetado genera un ValueError.
     """
-    partes = linea.strip().split(",")
-
-    if len(partes) != 2:
-        raise ValueError(f"la línea '{linea.strip()}' no tiene el formato usuario,contraseña.")
-
-    usuario = partes[0].strip()
-    contrasena = partes[1].strip()
-
-    if not validar_formato_usuario(usuario):
-        raise ValueError(f"el usuario '{usuario}' tiene un formato inválido.")
-
-    if contrasena == "":
-        raise ValueError(f"el usuario '{usuario}' no tiene contraseña.")
-
-    return usuario, contrasena
+    usuario, contrasena = linea.strip().split(",")
+    return usuario.strip(), contrasena.strip()
 
 
 def cargar_usuarios(nombre_archivo):
@@ -80,16 +67,23 @@ def cargar_usuarios(nombre_archivo):
             for numero_linea, linea in enumerate(arch, start=1):
                 if linea.strip() != "":
                     try:
-                        usuarios.append(parsear_linea_usuario(linea))
-                    except ValueError as error:
-                        print(f"Aviso (línea {numero_linea} del archivo de usuarios): {error}")
+                        usuario, contrasena = parsear_linea_usuario(linea)
+
+                        if not validar_formato_usuario(usuario):
+                            print(f"Aviso (línea {numero_linea} del archivo de usuarios): "
+                                  f"el usuario '{usuario}' tiene un formato inválido.")
+                        elif contrasena == "":
+                            print(f"Aviso (línea {numero_linea} del archivo de usuarios): "
+                                  f"el usuario '{usuario}' no tiene contraseña.")
+                        else:
+                            usuarios.append((usuario, contrasena))
+
+                    except ValueError:
+                        print(f"Aviso (línea {numero_linea} del archivo de usuarios): "
+                              f"la línea no tiene el formato usuario,contraseña.")
 
     except FileNotFoundError:
         print(f"Error: no se encontró el archivo de usuarios '{nombre_archivo}'.")
-        return None
-
-    except UnicodeDecodeError:
-        print(f"Error: el archivo de usuarios '{nombre_archivo}' no es un texto válido.")
         return None
 
     except OSError:
@@ -126,10 +120,6 @@ def cargar_configuracion(nombre_archivo):
 
     except json.JSONDecodeError:
         print(f"Error: '{nombre_archivo}' no tiene un formato JSON válido.")
-        return None
-
-    except UnicodeDecodeError:
-        print(f"Error: '{nombre_archivo}' no es un archivo de texto válido.")
         return None
 
     except OSError:
@@ -269,10 +259,6 @@ def cargar_datos(nombre_archivo, valor_por_defecto):
         print(f"Error: '{nombre_archivo}' está dañado o no es un JSON válido.")
         return None
 
-    except UnicodeDecodeError:
-        print(f"Error: '{nombre_archivo}' no es un archivo de texto válido.")
-        return None
-
     except OSError:
         print(f"Error: no se pudo leer '{nombre_archivo}'.")
         return None
@@ -316,7 +302,7 @@ def es_numerico(valor):
     """Convierte una cadena de dígitos a entero (validado con regex); devuelve None si no es numérica."""
     valor = valor.strip()
 
-    if re.fullmatch(PATRON_NUMERO, valor):
+    if re.match(PATRON_NUMERO, valor):
         return int(valor)
 
     return None
@@ -1266,9 +1252,9 @@ def reporte_completo(equipos, fixture):
 
 
 def guardar_reporte(nombre_archivo, titulo, texto):
-    """Agrega un reporte con su título al final del archivo de texto. Devuelve True si se guardó."""
+    """Graba el reporte con su título en el archivo de texto. Devuelve True si se guardó."""
     try:
-        with open(nombre_archivo, "a", encoding="utf-8") as arch:
+        with open(nombre_archivo, "w", encoding="utf-8") as arch:
             arch.write("=" * 60 + "\n")
             arch.write(titulo + "\n")
             arch.write("=" * 60 + "\n")
