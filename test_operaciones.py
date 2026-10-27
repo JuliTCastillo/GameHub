@@ -1,3 +1,5 @@
+import pytest
+
 from operaciones import (
     normalizar_string,
     validar_resultado,
@@ -8,6 +10,14 @@ from operaciones import (
     detectar_lideres,
     equipos_invictos,
     jornada_actual,
+    validar_formato_tag,
+    validar_formato_nombre,
+    parsear_linea_usuario,
+    cargar_usuarios,
+    estadisticas_por_region,
+    filtrar_equipos_por_region,
+    generar_alertas,
+    guardar_reporte,
 )
 
 
@@ -147,3 +157,97 @@ def test_casos_limite():
     assert validar_suficientes_equipos(equipos, 2) == True
     # Resultado con el puntaje exacto para ganar (13) y diferencia mínima exacta (2 -> 13 a 11)
     assert validar_resultado(13, 11, reglas) == True
+
+
+# ============================================================
+# PRUEBAS DE LAS FUNCIONALIDADES NUEVAS (correcciones Etapa 2)
+# ============================================================
+
+# 9. Validación de formato del tag con expresión regular
+def test_formato_tag_regex():
+    assert validar_formato_tag("SEN") == True
+    assert validar_formato_tag("T1") == True
+    assert validar_formato_tag("S") == False         # muy corto
+    assert validar_formato_tag("ABCDEF") == False    # muy largo
+    assert validar_formato_tag("SE!") == False       # carácter no permitido
+
+
+# 10. Validación de formato del nombre con expresión regular
+def test_formato_nombre_regex():
+    assert validar_formato_nombre("KRÜ Esports") == True
+    assert validar_formato_nombre("Team Liquid") == True
+    assert validar_formato_nombre("A") == False                      # muy corto
+    assert validar_formato_nombre("Equipo@#") == False               # caracteres no permitidos
+    assert validar_formato_nombre("Un nombre demasiado largo") == False
+
+
+# 11. Validación incorrecta que genera una excepción: línea de usuario mal formada
+def test_linea_usuario_invalida_lanza_excepcion():
+    with pytest.raises(ValueError):
+        parsear_linea_usuario("adminsinclave")       # falta la coma
+
+    with pytest.raises(ValueError):
+        parsear_linea_usuario("ad min,1234")         # usuario con formato inválido
+
+    with pytest.raises(ValueError):
+        parsear_linea_usuario("admin,")              # sin contraseña
+
+    assert parsear_linea_usuario("admin,1234\n") == ("admin", "1234")
+
+
+# 12. Lectura del archivo de usuarios: archivo inexistente y líneas mal formadas
+def test_cargar_usuarios(tmp_path):
+    # Archivo inexistente: no corta el programa, devuelve None
+    assert cargar_usuarios(tmp_path / "no_existe.csv") is None
+
+    # Archivo con una línea rota: se saltea y se cargan las válidas
+    archivo = tmp_path / "usuarios.csv"
+    archivo.write_text("admin,1234\nlinea_rota\njuli,abcd\n", encoding="utf-8")
+
+    assert cargar_usuarios(archivo) == [("admin", "1234"), ("juli", "abcd")]
+
+
+# 13. Diccionario acumulador: indicadores agrupados por región
+def test_estadisticas_por_region():
+    equipos = [
+        {"nombre": "Sentinels", "tag": "SEN", "region": "NA",
+         "estadisticas": {"PJ": 4, "PG": 4, "PP": 0, "PTS": 12}},
+        {"nombre": "Fnatic", "tag": "FNC", "region": "EU",
+         "estadisticas": {"PJ": 4, "PG": 1, "PP": 3, "PTS": 3}},
+        {"nombre": "NRG", "tag": "NRG", "region": "NA",
+         "estadisticas": {"PJ": 4, "PG": 1, "PP": 3, "PTS": 3}},
+    ]
+
+    acumulador = estadisticas_por_region(equipos)
+
+    assert acumulador["NA"] == {"equipos": 2, "PJ": 8, "PG": 5, "PP": 3, "PTS": 15}
+    assert acumulador["EU"] == {"equipos": 1, "PJ": 4, "PG": 1, "PP": 3, "PTS": 3}
+
+
+# 14. Reporte filtrado por región y alertas
+def test_filtro_por_region_y_alertas():
+    equipos = [
+        {"nombre": "Sentinels", "tag": "SEN", "region": "NA",
+         "estadisticas": {"PJ": 1, "PG": 1, "PP": 0, "PTS": 3}},
+        {"nombre": "Fnatic", "tag": "FNC", "region": "EU",
+         "estadisticas": {"PJ": 1, "PG": 0, "PP": 1, "PTS": 0}},
+    ]
+    fixture = [[1, 0, 1, 13, 5, 1, 0]]
+
+    assert filtrar_equipos_por_region(equipos, "na") == [0]
+    assert filtrar_equipos_por_region(equipos, "KR") == []
+
+    alertas = generar_alertas(equipos, fixture)
+    assert "El torneo finalizó: no quedan partidos pendientes." in alertas
+    assert "Sentinels está invicto (1 victorias)." in alertas
+
+
+# 15. Generación del archivo de texto con el reporte
+def test_guardar_reporte(tmp_path):
+    archivo = tmp_path / "reportes.txt"
+
+    assert guardar_reporte(archivo, "REPORTE DE PRUEBA", "Contenido del reporte") == True
+
+    contenido = archivo.read_text(encoding="utf-8")
+    assert "REPORTE DE PRUEBA" in contenido
+    assert "Contenido del reporte" in contenido

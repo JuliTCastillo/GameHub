@@ -1,12 +1,31 @@
+import os
 from operaciones import *
 
+
 def main():
+    # RUTAS
+    # Se arman a partir de la carpeta donde está este archivo, así el programa
+    # funciona igual sin importar desde qué carpeta se ejecute (GameHub, GameHub-main, etc.).
+    CARPETA = os.path.dirname(os.path.abspath(__file__))
+
+    ARCH_USUARIOS = os.path.join(CARPETA, "info_usuarios.csv")
+    ARCH_CONFIG = os.path.join(CARPETA, "config_torneo.json")
+    ARCH_EQUIPOS = os.path.join(CARPETA, "equipos.json")
+    ARCH_PARTIDOS = os.path.join(CARPETA, "partidos.json")
+    ARCH_REPORTES = os.path.join(CARPETA, "reportes.txt")
+
     # LOGIN
+    USUARIOS = cargar_usuarios(ARCH_USUARIOS)
+
+    if USUARIOS is None:
+        print("No se puede iniciar sesión sin un archivo de usuarios válido.")
+        return
+
     acceso = False
     intentos = 0
 
     while not acceso and intentos < 3:
-        if login_valido("GameHub/info_usuarios.csv"):
+        if login_valido(USUARIOS):
             acceso = True
         else:
             print("Usuario o contraseña incorrectos. Verificá los datos ingresados e intentá nuevamente.")
@@ -22,7 +41,7 @@ def main():
     print()
 
     # CONFIGURACION
-    CONFIG = cargar_configuracion("GameHub/config_torneo.json")
+    CONFIG = cargar_configuracion(ARCH_CONFIG)
 
     if CONFIG is None or not validar_configuracion(CONFIG):
         print("No se puede iniciar el programa sin una configuración válida.")
@@ -38,9 +57,6 @@ def main():
     REGLAS = CONFIG["reglas"]
 
     # REGISTROS
-    ARCH_EQUIPOS = "GameHub/equipos.json"
-    ARCH_PARTIDOS = "GameHub/partidos.json"
-
     EQUIPOS = cargar_datos(ARCH_EQUIPOS, [])
     FIXTURE = cargar_datos(ARCH_PARTIDOS, [])
 
@@ -48,6 +64,10 @@ def main():
         print("No se puede iniciar el programa con archivos de datos dañados.")
         return
 
+    if not validar_formato_equipos(EQUIPOS, CANT_EQUIPOS, REGIONES_VALIDAS):
+        print("El archivo de equipos tiene un formato incorrecto. "
+              "Corríjalo o bórrelo para reiniciar el torneo.")
+        return
 
     # PROGRAMA
     while not validar_suficientes_equipos(EQUIPOS, CANT_EQUIPOS):
@@ -65,9 +85,9 @@ def main():
         print("Los archivos de datos no son consistentes con la configuración. "
               "Corríjalos o bórrelos para reiniciar el torneo.")
         return
-    
+
     valor = menu(INFO_TORNEO)
-    
+
     while valor != 8:
         jornada = jornada_actual(FIXTURE)
         if valor == 1:
@@ -103,7 +123,7 @@ def main():
         if valor == 7:
             opcion_informe = menu_informes()
 
-            while opcion_informe != 6:
+            while opcion_informe != 9:
                 if opcion_informe == 1:
                     print(informe_lideres(EQUIPOS))
 
@@ -119,8 +139,34 @@ def main():
                 if opcion_informe == 5:
                     print(resumen_general(EQUIPOS, FIXTURE))
 
+                if opcion_informe == 6:
+                    print(informe_por_region(EQUIPOS))
+
+                if opcion_informe == 7:
+                    region = normalizar_string(
+                        input(f"Región a filtrar ({', '.join(REGIONES_VALIDAS)}): "))
+
+                    if region not in REGIONES_VALIDAS:
+                        print("Región inválida.")
+                    else:
+                        reporte = reporte_filtrado_region(EQUIPOS, region)
+                        print(reporte)
+                        if guardar_reporte(ARCH_REPORTES, f"REPORTE FILTRADO - REGIÓN {region}", reporte):
+                            print("El reporte se guardó en 'reportes.txt'.")
+
+                if opcion_informe == 8:
+                    reporte = reporte_completo(EQUIPOS, FIXTURE)
+                    print(reporte)
+                    if guardar_reporte(ARCH_REPORTES, "REPORTE GENERAL Y ALERTAS", reporte):
+                        print("El reporte se guardó en 'reportes.txt'.")
+
                 opcion_informe = menu_informes()
 
         valor = menu(INFO_TORNEO)
     print("Saliendo..")
-main()
+
+
+try:
+    main()
+except (KeyboardInterrupt, EOFError):
+    print("\nPrograma interrumpido por el usuario. Saliendo..")

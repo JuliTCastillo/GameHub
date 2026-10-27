@@ -3,28 +3,111 @@ import random
 import json
 
 
+# ============================================================
+# EXPRESIONES REGULARES (validaciones de formato)
+# ============================================================
+
+# Tag: entre 2 y 5 caracteres, solo letras A-Z (sin tilde) o números. Ej: SEN, LOUD, T1
+PATRON_TAG = r"[A-Z0-9]{2,5}"
+
+# Nombre de equipo: entre 2 y 20 caracteres. Empieza con letra o número y
+# después admite letras (incluidas las tildes y la Ü), números, espacios, puntos y guiones.
+PATRON_NOMBRE = r"\w[\w .-]{1,19}"
+
+# Usuario del login: entre 3 y 20 caracteres, letras, números o guion bajo.
+PATRON_USUARIO = r"[A-Za-z0-9_]{3,20}"
+
+# Número entero no negativo (solo dígitos).
+PATRON_NUMERO = r"\d+"
+
+
 def normalizar_string(string):
     """Convierte un texto a mayúsculas y elimina todos los espacios."""
     return re.sub(r"\s+", "", string.upper())
+
+
+def validar_formato_tag(tag):
+    """Valida con regex que el tag tenga de 2 a 5 caracteres A-Z o 0-9."""
+    return re.fullmatch(PATRON_TAG, tag) is not None
+
+
+def validar_formato_nombre(nombre):
+    """Valida con regex que el nombre tenga de 2 a 20 caracteres permitidos."""
+    return re.fullmatch(PATRON_NOMBRE, nombre) is not None
+
+
+def validar_formato_usuario(usuario):
+    """Valida con regex que el usuario tenga de 3 a 20 letras, números o guion bajo."""
+    return re.fullmatch(PATRON_USUARIO, usuario) is not None
 
 
 # ============================================================
 # LOGIN
 # ============================================================
 
-def cargar_usuario(nombre_archivo):
-    """Lee usuario y contraseña desde la primera línea de un archivo CSV."""
-    with open(nombre_archivo, "r", encoding="utf-8") as arch:
-        usuario_correcto, contrasena_correcta = arch.readline().strip().split(",")
-    return usuario_correcto, contrasena_correcta
+def parsear_linea_usuario(linea):
+    """
+    Separa una línea 'usuario,contraseña' del CSV.
+    Lanza ValueError si la línea no tiene el formato correcto.
+    """
+    partes = linea.strip().split(",")
+
+    if len(partes) != 2:
+        raise ValueError(f"la línea '{linea.strip()}' no tiene el formato usuario,contraseña.")
+
+    usuario = partes[0].strip()
+    contrasena = partes[1].strip()
+
+    if not validar_formato_usuario(usuario):
+        raise ValueError(f"el usuario '{usuario}' tiene un formato inválido.")
+
+    if contrasena == "":
+        raise ValueError(f"el usuario '{usuario}' no tiene contraseña.")
+
+    return usuario, contrasena
 
 
-def login_valido(nombre_archivo):
-    """Solicita credenciales por consola y valida que coincidan con el archivo."""
-    usuario = input("Ingrese el usario: ").strip()
+def cargar_usuarios(nombre_archivo):
+    """
+    Lee todos los usuarios del CSV y devuelve una lista de tuplas (usuario, contraseña).
+    Las líneas mal formadas se informan y se saltean.
+    Devuelve None si el archivo no existe, no se puede leer o no tiene usuarios válidos.
+    """
+    usuarios = []
+
+    try:
+        with open(nombre_archivo, "r", encoding="utf-8") as arch:
+            for numero_linea, linea in enumerate(arch, start=1):
+                if linea.strip() != "":
+                    try:
+                        usuarios.append(parsear_linea_usuario(linea))
+                    except ValueError as error:
+                        print(f"Aviso (línea {numero_linea} del archivo de usuarios): {error}")
+
+    except FileNotFoundError:
+        print(f"Error: no se encontró el archivo de usuarios '{nombre_archivo}'.")
+        return None
+
+    except UnicodeDecodeError:
+        print(f"Error: el archivo de usuarios '{nombre_archivo}' no es un texto válido.")
+        return None
+
+    except OSError:
+        print(f"Error: no se pudo leer el archivo de usuarios '{nombre_archivo}'.")
+        return None
+
+    if len(usuarios) == 0:
+        print("Error: el archivo de usuarios no tiene ningún registro válido.")
+        return None
+
+    return usuarios
+
+
+def login_valido(usuarios):
+    """Solicita credenciales por consola y valida que coincidan con algún usuario cargado."""
+    usuario = input("Ingrese el usuario: ").strip()
     contrasena = input("Ingrese la contraseña: ").strip()
-    usuario_correcto, contrasena_correcta = cargar_usuario(nombre_archivo)
-    return usuario_correcto == usuario and contrasena_correcta == contrasena
+    return (usuario, contrasena) in usuarios
 
 
 # ============================================================
@@ -43,6 +126,14 @@ def cargar_configuracion(nombre_archivo):
 
     except json.JSONDecodeError:
         print(f"Error: '{nombre_archivo}' no tiene un formato JSON válido.")
+        return None
+
+    except UnicodeDecodeError:
+        print(f"Error: '{nombre_archivo}' no es un archivo de texto válido.")
+        return None
+
+    except OSError:
+        print(f"Error: no se pudo leer '{nombre_archivo}'.")
         return None
 
     return config
@@ -178,6 +269,14 @@ def cargar_datos(nombre_archivo, valor_por_defecto):
         print(f"Error: '{nombre_archivo}' está dañado o no es un JSON válido.")
         return None
 
+    except UnicodeDecodeError:
+        print(f"Error: '{nombre_archivo}' no es un archivo de texto válido.")
+        return None
+
+    except OSError:
+        print(f"Error: no se pudo leer '{nombre_archivo}'.")
+        return None
+
 
 def guardar_datos(nombre_archivo, datos):
     """Guarda una estructura de datos en un archivo JSON."""
@@ -214,22 +313,76 @@ def guardar_fixture(nombre_archivo, fixture):
 # ============================================================
 
 def es_numerico(valor):
-    """Convierte una cadena de dígitos a entero; devuelve None si no es numérica."""
-    if valor.isdigit():
+    """Convierte una cadena de dígitos a entero (validado con regex); devuelve None si no es numérica."""
+    valor = valor.strip()
+
+    if re.fullmatch(PATRON_NUMERO, valor):
         return int(valor)
 
+    return None
 
-def validacion_de_rango(min, max, valor):
-    """Verifica que un valor esté entre min y max, solicitándolo de nuevo si no cumple."""
-    try:
-        while valor < min or valor > max:
-            print(f"Error. Ingrese un valor entre {min} a {max}")
-            valor = es_numerico(input("Ingrese la operación que desea realizar: "))
 
-        return valor
+def validacion_de_rango(minimo, maximo, valor):
+    """Verifica que un valor esté entre minimo y maximo, solicitándolo de nuevo si no cumple."""
+    while valor is None or valor < minimo or valor > maximo:
+        print(f"Error. Ingrese un número entre {minimo} y {maximo}.")
+        valor = es_numerico(input("Ingrese la operación que desea realizar: "))
 
-    except TypeError:
-        print(f"ERROR. El valor ingresado no es numerico")
+    return valor
+
+
+def validar_formato_equipos(equipos, cantidad_equipos, regiones_validas):
+    """Verifica que los equipos cargados del JSON tengan la estructura y los formatos correctos."""
+    if not isinstance(equipos, list):
+        print("El archivo de equipos debe contener una lista [ ... ].")
+        return False
+
+    if len(equipos) > cantidad_equipos:
+        print(f"Hay {len(equipos)} equipos guardados y el torneo admite {cantidad_equipos}.")
+        return False
+
+    claves_equipo = ("nombre", "tag", "region", "estadisticas")
+    claves_estadisticas = ("PJ", "PG", "PP", "PTS")
+
+    for i in range(len(equipos)):
+        equipo = equipos[i]
+
+        if not isinstance(equipo, dict):
+            print(f"El equipo en la posición {i} no es un objeto {{ ... }}.")
+            return False
+
+        for clave in claves_equipo:
+            if clave not in equipo:
+                print(f"Al equipo en la posición {i} le falta '{clave}'.")
+                return False
+
+        if not isinstance(equipo["nombre"], str) or not validar_formato_nombre(equipo["nombre"]):
+            print(f"El nombre del equipo en la posición {i} tiene un formato inválido.")
+            return False
+
+        if not isinstance(equipo["tag"], str) or not validar_formato_tag(equipo["tag"]):
+            print(f"El tag de '{equipo['nombre']}' tiene un formato inválido.")
+            return False
+
+        if equipo["region"] not in regiones_validas:
+            print(f"La región de '{equipo['nombre']}' no está habilitada en la configuración.")
+            return False
+
+        estadisticas = equipo["estadisticas"]
+
+        if not isinstance(estadisticas, dict):
+            print(f"Las estadísticas de '{equipo['nombre']}' deben ser un objeto {{ ... }}.")
+            return False
+
+        for clave in claves_estadisticas:
+            if (clave not in estadisticas
+                    or not isinstance(estadisticas[clave], int)
+                    or isinstance(estadisticas[clave], bool)
+                    or estadisticas[clave] < 0):
+                print(f"La estadística '{clave}' de '{equipo['nombre']}' falta o no es un entero válido.")
+                return False
+
+    return True
 
 
 def validar_estadisticas(equipos, fixture, cantidad_equipos):
@@ -281,12 +434,17 @@ def validar_suficientes_equipos(equipos, cantidad):
 
 
 def validar_registro_equipo(equipos, nombre, tag, region, regionesValidas):
-    """Valida formato, unicidad de nombre/tag y región permitida para un nuevo equipo."""
+    """Valida formato (regex), unicidad de nombre/tag y región permitida para un nuevo equipo."""
     valido = True
 
-    # Nombre no vacío, sin espacios dobles ni repetido
+    # Nombre no vacío, con formato válido, sin espacios dobles ni repetido
     if nombre == "":
         print("El nombre del equipo no puede estar vacío.")
+        valido = False
+
+    elif not validar_formato_nombre(nombre):
+        print("El nombre debe tener entre 2 y 20 caracteres y solo puede usar "
+              "letras, números, espacios, puntos o guiones.")
         valido = False
 
     if "  " in nombre:
@@ -300,12 +458,16 @@ def validar_registro_equipo(equipos, nombre, tag, region, regionesValidas):
             print("El nombre de equipo ya está registrado.")
             valido = False
 
-    # Tag no vacío ni repetido
-    if tag == "":
+    # Tag no vacío, con formato válido y no repetido
+    tagNormalizado = normalizar_string(tag)
+
+    if tagNormalizado == "":
         print("El tag no puede estar vacío.")
         valido = False
 
-    tagNormalizado = normalizar_string(tag)
+    elif not validar_formato_tag(tagNormalizado):
+        print("El tag debe tener entre 2 y 5 caracteres: solo letras sin tilde (A-Z) o números.")
+        valido = False
 
     for equipo in equipos:
         if equipo["tag"] == tagNormalizado:
@@ -358,8 +520,7 @@ def registrar_equipo(equipos, regionesValidas):
         input("Tag (código corto): ")
     )
 
-    region = normalizar_string(input(f"Región ({', '.join(regionesValidas)}): ")
-)
+    region = normalizar_string(input(f"Región ({', '.join(regionesValidas)}): "))
 
     valido = validar_registro_equipo(
         equipos,
@@ -671,22 +832,24 @@ def registrar_resultados(jornada, fixture, equipos, reglas):
     equipoB = equipos[idB]["nombre"]
 
     print(
-            f"El partido actual es "
-            f"{equipoA} vs {equipoB}"
-        )
+        f"El partido actual es "
+        f"{equipoA} vs {equipoB}"
+    )
 
-    while True:
-            ganadasA = pedir_puntaje(f"Ingrese la puntuación de {equipoA}: ")
-            ganadasB = pedir_puntaje(f"Ingrese la puntuación de {equipoB}: ")
+    resultado_valido = False
 
-            if ganadasA == ganadasB:
-                print("Error. No se permiten empates.")
+    while not resultado_valido:
+        ganadasA = pedir_puntaje(f"Ingrese la puntuación de {equipoA}: ")
+        ganadasB = pedir_puntaje(f"Ingrese la puntuación de {equipoB}: ")
 
-            elif not validar_resultado(ganadasA, ganadasB, reglas):
-                print("Por favor, ingrese los puntajes nuevamente.")
+        if ganadasA == ganadasB:
+            print("Error. No se permiten empates.")
 
-            else:
-                break
+        elif not validar_resultado(ganadasA, ganadasB, reglas):
+            print("Por favor, ingrese los puntajes nuevamente.")
+
+        else:
+            resultado_valido = True
 
     partido_actual[3] = ganadasA
     partido_actual[4] = ganadasB
@@ -929,6 +1092,199 @@ def informe_invictos(equipos):
     return f"Equipos invictos: {', '.join(invictos)}"
 
 
+# ============================================================
+# DICCIONARIO ACUMULADOR: INDICADORES POR REGIÓN
+# ============================================================
+
+def estadisticas_por_region(equipos):
+    """
+    Diccionario acumulador: usa la región como clave y acumula, para cada una,
+    la cantidad de equipos y la suma de PJ, PG, PP y PTS de sus equipos.
+    Ejemplo: {"NA": {"equipos": 2, "PJ": 8, "PG": 5, "PP": 3, "PTS": 15}, ...}
+    """
+    acumulador = {}
+
+    for equipo in equipos:
+        region = equipo["region"]
+        est = equipo["estadisticas"]
+
+        if region not in acumulador:
+            acumulador[region] = {"equipos": 0, "PJ": 0, "PG": 0, "PP": 0, "PTS": 0}
+
+        acumulador[region]["equipos"] += 1
+        acumulador[region]["PJ"] += est["PJ"]
+        acumulador[region]["PG"] += est["PG"]
+        acumulador[region]["PP"] += est["PP"]
+        acumulador[region]["PTS"] += est["PTS"]
+
+    return acumulador
+
+
+def informe_por_region(equipos):
+    """Devuelve el informe de indicadores agrupados por región (usa el diccionario acumulador)."""
+    acumulador = estadisticas_por_region(equipos)
+
+    encabezado = (
+        f"{'Región':<8}"
+        f"{'Equipos':<9}"
+        f"{'PJ':<5}"
+        f"{'PG':<5}"
+        f"{'PP':<5}"
+        f"{'Pts':<5}"
+        f"{'% Vict.':<8}"
+    )
+
+    lineas = ["Indicadores por región:", encabezado]
+
+    for region in sorted(acumulador):
+        datos = acumulador[region]
+
+        porcentaje = (
+            (datos["PG"] / datos["PJ"] * 100)
+            if datos["PJ"] > 0
+            else 0
+        )
+
+        linea = (
+            f"{region:<8}"
+            f"{datos['equipos']:<9}"
+            f"{datos['PJ']:<5}"
+            f"{datos['PG']:<5}"
+            f"{datos['PP']:<5}"
+            f"{datos['PTS']:<5}"
+            f"{porcentaje:.1f}%"
+        )
+
+        lineas.append(linea)
+
+    return "\n".join(lineas)
+
+
+# ============================================================
+# REPORTE FILTRADO
+# ============================================================
+
+def filtrar_equipos_por_region(equipos, region):
+    """Devuelve los IDs de los equipos que pertenecen a la región indicada."""
+    regionNormalizada = normalizar_string(region)
+
+    return [
+        i
+        for i in range(len(equipos))
+        if equipos[i]["region"] == regionNormalizada
+    ]
+
+
+def reporte_filtrado_region(equipos, region):
+    """Arma el reporte de los equipos de una región, en el orden de la tabla general."""
+    regionNormalizada = normalizar_string(region)
+    ids_region = filtrar_equipos_por_region(equipos, regionNormalizada)
+
+    if len(ids_region) == 0:
+        return f"No hay equipos registrados de la región {regionNormalizada}."
+
+    encabezado = (
+        f"{'Pos':<4}"
+        f"{'Equipo':<20}"
+        f"{'Tag':<8}"
+        f"{'PJ':<5}"
+        f"{'PG':<5}"
+        f"{'PP':<5}"
+        f"{'Pts':<5}"
+    )
+
+    lineas = [
+        f"Equipos de la región {regionNormalizada} "
+        f"(Pos = posición en la tabla general):",
+        encabezado
+    ]
+
+    for pos, i in enumerate(generar_ranking(equipos), start=1):
+        if i in ids_region:
+            est = equipos[i]["estadisticas"]
+
+            linea = (
+                f"{pos:<4}"
+                f"{equipos[i]['nombre']:<20}"
+                f"{equipos[i]['tag']:<8}"
+                f"{est['PJ']:<5}"
+                f"{est['PG']:<5}"
+                f"{est['PP']:<5}"
+                f"{est['PTS']:<5}"
+            )
+
+            lineas.append(linea)
+
+    return "\n".join(lineas)
+
+
+# ============================================================
+# ALERTAS Y ARCHIVO DE REPORTES
+# ============================================================
+
+def generar_alertas(equipos, fixture):
+    """Devuelve una lista de alertas sobre el estado del torneo."""
+    alertas = []
+
+    jornada = jornada_actual(fixture)
+    pendientes = len([partido for partido in fixture if partido[5] == 0])
+
+    if jornada == 0:
+        alertas.append("El torneo finalizó: no quedan partidos pendientes.")
+    else:
+        alertas.append(f"Torneo en curso: jornada {jornada}, "
+                       f"quedan {pendientes} partidos pendientes.")
+
+    for equipo in equipos:
+        est = equipo["estadisticas"]
+
+        if est["PJ"] > 0 and est["PP"] == 0:
+            alertas.append(f"{equipo['nombre']} está invicto ({est['PG']} victorias).")
+
+        if est["PJ"] > 0 and est["PG"] == 0:
+            alertas.append(f"{equipo['nombre']} todavía no ganó ningún partido "
+                           f"({est['PJ']} jugados).")
+
+    return alertas
+
+
+def reporte_completo(equipos, fixture):
+    """Junta el resumen general, la tabla, los indicadores por región y las alertas."""
+    lineas_alertas = ["Alertas:"]
+
+    for alerta in generar_alertas(equipos, fixture):
+        lineas_alertas.append(f"- {alerta}")
+
+    secciones = [
+        resumen_general(equipos, fixture),
+        tabla_de_posiciones(equipos),
+        informe_por_region(equipos),
+        "\n".join(lineas_alertas),
+    ]
+
+    return "\n\n".join(secciones)
+
+
+def guardar_reporte(nombre_archivo, titulo, texto):
+    """Agrega un reporte con su título al final del archivo de texto. Devuelve True si se guardó."""
+    try:
+        with open(nombre_archivo, "a", encoding="utf-8") as arch:
+            arch.write("=" * 60 + "\n")
+            arch.write(titulo + "\n")
+            arch.write("=" * 60 + "\n")
+            arch.write(texto + "\n\n")
+
+    except OSError:
+        print(f"Error: no se pudo escribir el archivo de reportes '{nombre_archivo}'.")
+        return False
+
+    return True
+
+
+# ============================================================
+# MENÚS
+# ============================================================
+
 def menu_informes():
     """Muestra el submenú de informes y devuelve la opción válida elegida."""
     print("""
@@ -938,19 +1294,18 @@ def menu_informes():
 3. Racha de victorias más larga
 4. Equipos invictos
 5. Resumen general
-6. Volver
+6. Indicadores por región
+7. Reporte filtrado por región (se guarda en reportes.txt)
+8. Reporte general con alertas (se guarda en reportes.txt)
+9. Volver
     """)
 
     operacion = es_numerico(
         input("Ingrese la operación que desea realizar: ")
     )
 
-    return validacion_de_rango(1, 6, operacion)
+    return validacion_de_rango(1, 9, operacion)
 
-
-# ============================================================
-# MENÚ PRINCIPAL
-# ============================================================
 
 def menu(info):
     """Muestra el menú principal del torneo y devuelve la opción válida elegida."""
